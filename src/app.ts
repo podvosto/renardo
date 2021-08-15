@@ -31,31 +31,34 @@ async function main() {
   provider.on('block', async (b) => {
     console.info('🚀 ~ file: app.ts ~ line 26 ~ provider.on ~ b', b)
 
-    // get reserves on Exchange0
-    const rawReservesPair0 = await exchanges[0].pairs[0].getReserves()
-    const reserves00 = rawReservesPair0[0].toString()
-    const reserves01 = rawReservesPair0[1].toString()
-    const price0 = BN(reserves00).div(reserves01).toFixed()
-    console.log('🚀 ~ file: app.ts ~ line 34 ~ provider.on ~ reserves0', reserves00, reserves01)
-    console.log('🚀 ~ file: app.ts ~ line 34 ~ provider.on ~ reserves0', price0)
+    // A forEach doesnt stop on Await, so it's faster
+    Config.pairs.forEach(async (_, i) => {
+      // get reserves on Exchange0
+      const rawReservesPair0 = await exchanges[0].pairs[i].getReserves()
+      const reserves00 = rawReservesPair0[0].toString()
+      const reserves01 = rawReservesPair0[1].toString()
+      const price0 = BN(reserves00).div(reserves01).toFixed()
+      console.log('🚀 ~ file: app.ts ~ line 34 ~ provider.on ~ reserves0', reserves00, reserves01)
+      console.log('🚀 ~ file: app.ts ~ line 34 ~ provider.on ~ reserves0', price0)
 
-    // get reserves on Exchange1
-    const rawReservesPair1 = await exchanges[1].pairs[0].getReserves()
-    const reserves10 = rawReservesPair1[0].toString()
-    const reserves11 = rawReservesPair1[1].toString()
-    const price1 = BN(reserves10).div(reserves11).toFixed()
-    console.log('🚀 ~ file: app.ts ~ line 34 ~ provider.on ~ reserves1', reserves10, reserves11)
-    console.log('🚀 ~ file: app.ts ~ line 34 ~ provider.on ~ reserves1', price1)
+      // get reserves on Exchange1
+      const rawReservesPair1 = await exchanges[1].pairs[i].getReserves()
+      const reserves10 = rawReservesPair1[0].toString()
+      const reserves11 = rawReservesPair1[1].toString()
+      const price1 = BN(reserves10).div(reserves11).toFixed()
+      console.log('🚀 ~ file: app.ts ~ line 34 ~ provider.on ~ reserves1', reserves10, reserves11)
+      console.log('🚀 ~ file: app.ts ~ line 34 ~ provider.on ~ reserves1', price1)
 
-    const diference = BN(price1).div(price0).toFixed()
-    console.warn('--- Diference', diference)
-    if (
-      BN(diference).isGreaterThan(PROFIT_THRESHOLD_ABOVE) ||
-      BN(diference).isLessThan(PROFIT_THRESHOLD_BELOW)
-    ) {
-      // Calc Swap direction
-      console.warn('---- TRADE OPPORTUNITY')
-    }
+      const diference = BN(price1).div(price0).toFixed()
+      console.warn('--- Diference', diference)
+      if (
+        BN(diference).isGreaterThan(PROFIT_THRESHOLD_ABOVE) ||
+        BN(diference).isLessThan(PROFIT_THRESHOLD_BELOW)
+      ) {
+        // Calc Swap direction
+        console.warn('---- TRADE OPPORTUNITY', JSON.stringify(Config.pairs[i], null, 4))
+      }
+    })
   })
 }
 
