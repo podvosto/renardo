@@ -6,6 +6,7 @@ import { Exchanges, Tokens, Pairs } from './config'
 import { BN } from './Utils/BigNumber'
 import { Pair } from './Types'
 import colors from 'colors'
+import { ERC20 } from './ABI/ERC20'
 
 const provider = new ethers.providers.StaticJsonRpcProvider(
   'https://polygon-mainnet.g.alchemy.com/v2/fD5HjNcSOLvLdY1-Os1sPs9iGmrrpO4A',
@@ -42,9 +43,13 @@ async function main() {
 
       try {
         const ex0 = exchanges[0]
-        const pairEx0 = ex0.pairs[i]
         const ex1 = exchanges[1]
+
+        const pairEx0 = ex0.pairs[i]
         const pairEx1 = ex1.pairs[i]
+
+        const token0 = pairEx0.token0
+        const token1 = pairEx0.token1
         if (!pairEx0.exists || !pairEx1.exists) {
           return
         }

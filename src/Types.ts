@@ -1,9 +1,5 @@
 import { ethers } from 'ethers'
-
-export interface Token {
-  address: string
-  symbol: string
-}
+import { BN } from './Utils/BigNumber'
 
 export class Pair {
   constructor(
@@ -20,5 +16,21 @@ export class Pair {
 
   get exists() {
     return parseInt(this.contract.address, 16) !== 0
+  }
+}
+
+export class Token {
+  constructor(
+    public readonly symbol: string,
+    public readonly address: string,
+    public readonly decimals: number
+  ) {}
+
+  toFactorized(n: string) {
+    return BN(n).dividedBy(Math.pow(10, this.decimals)).toFixed()
+  }
+
+  toPrecision(n: string) {
+    return BN(n).multipliedBy(Math.pow(10, this.decimals)).toFixed()
   }
 }
