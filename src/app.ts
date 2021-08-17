@@ -5,6 +5,7 @@ import { UniswapRouter02 } from './ABI/UniswapRouter02'
 import { Exchanges, Tokens, Pairs } from './config'
 import { BN } from './Utils/BigNumber'
 import { Pair } from './Types'
+import colors from 'colors'
 
 const provider = new ethers.providers.StaticJsonRpcProvider(
   'https://polygon-mainnet.g.alchemy.com/v2/fD5HjNcSOLvLdY1-Os1sPs9iGmrrpO4A',
@@ -37,6 +38,8 @@ async function main() {
     //Pairs.forEach(async (_, i) => {
     // wanna debug
     for (let i = 0; i < Pairs.length; i++) {
+      console.log(`\n`)
+
       try {
         const ex0 = exchanges[0]
         const pairEx0 = ex0.pairs[i]
@@ -46,33 +49,36 @@ async function main() {
           return
         }
 
-        console.warn('Processing pair: ', pairEx0.name)
-        // get reserves on Exchange0
-        const rawReservesPair0 = await pairEx0.contract.getReserves()
+        console.log(colors.magenta(`[${pairEx0.name}]`))
+        // get reserves on both exchanges
+        const [rawReservesPair0, rawReservesPair1] = await Promise.all([
+          pairEx0.contract.getReserves(),
+          pairEx1.contract.getReserves()
+        ])
+        // calc price on Exchange0
+
         const reserves00 = rawReservesPair0[0].toString()
         const reserves01 = rawReservesPair0[1].toString()
         const price0 = BN(reserves00).div(reserves01).toFixed()
         console.log(`[${ex0.name}] Reserves`, reserves00, reserves01)
         console.log(`[${ex0.name}] Price`, price0)
-        console.log(`\n`)
 
-        // get reserves on Exchange1
-        const rawReservesPair1 = await pairEx1.contract.getReserves()
+        // calc price on Exchange1
+
         const reserves10 = rawReservesPair1[0].toString()
         const reserves11 = rawReservesPair1[1].toString()
         const price1 = BN(reserves10).div(reserves11).toFixed()
         console.log(`[${ex1.name}] Reserves`, reserves10, reserves11)
         console.log(`[${ex1.name}] Price`, price1)
-        console.log(`\n`)
 
         const difference = BN(price1).div(price0).toFixed()
-        console.log('Difference:', difference)
+        console.log('[Difference]', difference)
         if (
           BN(difference).isGreaterThan(PROFIT_THRESHOLD_ABOVE) ||
           BN(difference).isLessThan(PROFIT_THRESHOLD_BELOW)
         ) {
           // Calc Swap direction
-          console.warn('---- TRADE OPPORTUNITY', JSON.stringify(Pairs[i], null, 4))
+          console.log(colors.green(`[Trade Opportunity] ${pairEx0.name}`))
         }
       } catch (error) {
         console.error(error)
