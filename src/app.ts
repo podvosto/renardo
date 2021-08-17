@@ -3,7 +3,7 @@ import { UniswapFactory } from './ABI/UniswapFactory'
 import { UniswapPair } from './ABI/UniswapPair'
 import { UniswapRouter02 } from './ABI/UniswapRouter02'
 import { Exchanges, Tokens, Pairs } from './config'
-import { BN } from './Utils/BigNumber'
+import { BN, toHex } from './Utils/BigNumber'
 import { Pair } from './Types'
 import colors from 'colors'
 import { ERC20 } from './ABI/ERC20'
@@ -12,6 +12,8 @@ const provider = new ethers.providers.StaticJsonRpcProvider(
   'https://polygon-mainnet.g.alchemy.com/v2/fD5HjNcSOLvLdY1-Os1sPs9iGmrrpO4A',
   137
 )
+
+const walletAddress = '0x52856Ca4ddb55A1420950857C7882cFC8E02281C'
 
 const PROFIT_THRESHOLD_BELOW = 0.997
 const PROFIT_THRESHOLD_ABOVE = 1.003
@@ -82,14 +84,38 @@ async function main() {
         const profitableToSellOnEx1 = BN(difference).isGreaterThan(PROFIT_THRESHOLD_ABOVE)
         const profitableSellOn0Ex0 = BN(difference).isGreaterThan(PROFIT_THRESHOLD_BELOW)
         if (profitableToSellOnEx1 || profitableSellOn0Ex0) {
+          // Calc Swap direction
           const buyOn = profitableSellOn0Ex0 ? ex1 : ex0
           const sellOn = profitableSellOn0Ex0 ? ex0 : ex1
-          // Calc Swap direction
+
           console.log(
             colors.green(
               `[Trade Opportunity] ${pairEx0.name} Buy on ${buyOn.name} Sell on ${sellOn.name}`
             )
           )
+          // Swap params
+          const amountIn = toHex(pairEx0.token0.toPrecision('100'))
+          const amountOutMin = toHex(
+            BN(pairEx0.token0.toPrecision('100')).multipliedBy(1.001).toFixed(0)
+          )
+          const route = [pairEx0.token0.address, pairEx0.token1.address]
+          const deadline = toHex(
+            BN(Date.now() + 60_000)
+              .dividedBy(1000)
+              .toFixed(0)
+          )
+          const swapParams = [amountIn, amountOutMin, walletAddress, route, deadline]
+
+          // calc gas cost
+          const [gasLimitEx0, gasLimitEx1] = await Promise.all([
+            ex0.router.estimateGas.swapExactTokensForTokens(...swapParams, {
+              callValue: undefined
+            }),
+            ex1.router.estimateGas.swapExactTokensForTokens(...swapParams, {
+              callValue: undefined
+            })
+          ])
+          console.log('GasLimits', gasLimitEx0, gasLimitEx1)
         }
       } catch (error) {
         console.error(error)
