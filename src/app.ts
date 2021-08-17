@@ -78,12 +78,18 @@ async function main() {
 
         const difference = BN(price1).div(price0).toFixed()
         console.log('[Difference]', difference)
-        if (
-          BN(difference).isGreaterThan(PROFIT_THRESHOLD_ABOVE) ||
-          BN(difference).isLessThan(PROFIT_THRESHOLD_BELOW)
-        ) {
+
+        const profitableToSellOnEx1 = BN(difference).isGreaterThan(PROFIT_THRESHOLD_ABOVE)
+        const profitableSellOn0Ex0 = BN(difference).isGreaterThan(PROFIT_THRESHOLD_BELOW)
+        if (profitableToSellOnEx1 || profitableSellOn0Ex0) {
+          const buyOn = profitableSellOn0Ex0 ? ex1 : ex0
+          const sellOn = profitableSellOn0Ex0 ? ex0 : ex1
           // Calc Swap direction
-          console.log(colors.green(`[Trade Opportunity] ${pairEx0.name}`))
+          console.log(
+            colors.green(
+              `[Trade Opportunity] ${pairEx0.name} Buy on ${buyOn.name} Sell on ${sellOn.name}`
+            )
+          )
         }
       } catch (error) {
         console.error(error)
