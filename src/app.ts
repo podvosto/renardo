@@ -2,16 +2,11 @@ import { ethers } from 'ethers'
 import { UniswapFactory } from './ABI/UniswapFactory'
 import { UniswapPair } from './ABI/UniswapPair'
 import { UniswapRouter02 } from './ABI/UniswapRouter02'
-import { Exchanges, Tokens, Pairs } from './config'
-import { BN, toHex, erc20HelperFactory } from './Utils'
+import { Exchanges, Trade, Pairs } from './config'
+import { BN, toHex, erc20HelperFactory, calcMinAmount } from './Utils'
 import { Pair } from './Types'
 import colors from 'colors'
 import { provider, wallet } from './Providers'
-
-const PROFIT_THRESHOLD_BELOW = 0.997
-const PROFIT_THRESHOLD_ABOVE = 1.003
-
-const tradeAmount = '0.01'
 
 async function main() {
   const exchanges = Exchanges.map((e) => ({
@@ -87,8 +82,8 @@ async function main() {
         const difference = BN(price1).div(price0).toFixed()
         console.log('[Difference]', difference)
 
-        const profitableToSellOnEx1 = BN(difference).isGreaterThan(PROFIT_THRESHOLD_ABOVE)
-        const profitableSellOn0Ex0 = BN(difference).isGreaterThan(PROFIT_THRESHOLD_BELOW)
+        const profitableToSellOnEx1 = BN(difference).isGreaterThan(Trade.profitThresholdAbove)
+        const profitableSellOn0Ex0 = BN(difference).isGreaterThan(Trade.profitThresholdBelow)
         if (profitableToSellOnEx1 || profitableSellOn0Ex0) {
           // Calc Swap direction
           const buyOn = profitableSellOn0Ex0 ? ex1 : ex0
@@ -100,10 +95,8 @@ async function main() {
             )
           )
           // Swap params
-          const amountIn = toHex(pairEx0.token0.toPrecision(tradeAmount))
-          const amountOutMin = toHex(
-            BN(pairEx0.token0.toPrecision(tradeAmount)).multipliedBy(1.001).toFixed(0)
-          )
+          const amountIn = toHex(pairEx0.token0.toPrecision(Trade.tradeAmount))
+          const amountOutMin = toHex(calcMinAmount(Trade.tradeAmount, Trade.slippage))
           const route = [pairEx0.token0.address, pairEx0.token1.address]
           const deadline = toHex(
             BN(Date.now() + 60_000)

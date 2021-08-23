@@ -5,6 +5,7 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc --incremental",
+    "build:watch": "tsc --incremental --watch",
     "tsc": "tsc --incremental",
     "start": "node build/app.js",
     "start:dev": "node -r dotenv/config -r ts-node/register --inspect src/app.ts",
