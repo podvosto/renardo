@@ -16,11 +16,17 @@ interface AllowanceParams {
   owner: string
 }
 
+const erc20HelperFactoryCache: Record<string, ethers.Contract> = {}
+
 export const erc20HelperFactory = (
   token: Token,
   provider: ethers.Signer | ethers.providers.Provider
 ) => {
-  const contract = new ethers.Contract(token.address, ERC20, provider)
+  if (!erc20HelperFactoryCache[token.address]) {
+    erc20HelperFactoryCache[token.address] = new ethers.Contract(token.address, ERC20, provider)
+  }
+
+  const contract = erc20HelperFactoryCache[token.address]
 
   const approve = async ({ spender, amount }: ApproveParams) => {
     const approvalValue = amount
@@ -49,11 +55,10 @@ export const erc20HelperFactory = (
   }
 
   const approveIfNeeded = async ({ owner, spender, amount }: AllowanceParams & ApproveParams) => {
-    const allowanceValue = await allowance({ owner, spender })
+    const allowanceValue = 0 //await allowance({ owner, spender })
 
     if (BN(allowanceValue).isZero()) {
-      await approve({ spender })
-      return true
+      return approve({ spender })
     }
     return false
   }

@@ -14,7 +14,7 @@ import {
   calcDeadline,
   gasLimitToFactorized
 } from './Utils'
-import { Pair } from './Types'
+import { Pair, Token } from './Types'
 import colors from 'colors'
 import { provider, wallet } from './Providers'
 
@@ -26,25 +26,36 @@ async function main() {
     pairs: [] as Pair[]
   }))
 
+  const approvingList: [string, Token][] = []
+
   for (const pair of Pairs) {
     for (const exc of exchanges) {
-      /* TODO: 
-        1) approve in parallel all token in all exchanges
-        2) wait for all TX to avoid multiple approve calls
-       */
-      const token0Erc20 = erc20HelperFactory(pair.token0, wallet)
-      const token1Erc20 = erc20HelperFactory(pair.token1, wallet)
+      // Add tokens to router approval list
+      approvingList.push([exc.router.address, pair.token0])
+      approvingList.push([exc.router.address, pair.token1])
 
-      const [pairAddress] = await Promise.all([
-        exc.factory.getPair(pair.token0.address, pair.token1.address),
-        token0Erc20.approveIfNeeded({ owner: wallet.address, spender: exc.router.address }),
-        token1Erc20.approveIfNeeded({ owner: wallet.address, spender: exc.router.address })
-      ])
-
+      const pairAddress = await exc.factory.getPair(pair.token0.address, pair.token1.address)
       const pairContract = new ethers.Contract(pairAddress, UniswapPair, provider)
       exc.pairs.push(new Pair(pairContract, pair.token0, pair.token1))
     }
   }
+
+  /**
+   * Approve all tokens on routers
+   * It could be done on demand but we do not want to lose oportunities waiting for it.
+   * And this will happen only once when changing trading account or adding new pairs
+   **/
+
+  await Promise.all(
+    approvingList.map(([router, token]) =>
+      erc20HelperFactory(token, wallet)
+        .approveIfNeeded({
+          owner: wallet.address,
+          spender: router
+        })
+        .then((res) => (res ? res.wait(1) : Promise.resolve()))
+    )
+  )
 
   provider.once('block', async (block) => {
     console.log(colors.cyan(`[Block #${block}]`))
