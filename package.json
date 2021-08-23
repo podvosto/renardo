@@ -7,7 +7,7 @@
     "build": "tsc --incremental",
     "tsc": "tsc --incremental",
     "start": "node build/app.js",
-    "start:dev": "node -r ts-node/register --inspect src/app.ts",
+    "start:dev": "node -r dotenv/config -r ts-node/register --inspect src/app.ts",
     "start:dev:watch": "nodemon --watch \"src/**\" --ext \"ts,json\" --exec yarn start:dev"
   },
   "dependencies": {
@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "^16.6.1",
+    "dotenv": "^10.0.0",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^3.4.0",

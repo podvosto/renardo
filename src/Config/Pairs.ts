@@ -2,6 +2,12 @@ import { Tokens } from './Tokens'
 
 export const Pairs = [
   {
+    token0: Tokens.USDC,
+    token1: Tokens.WMATIC
+  }
+]
+export const AllPairs = [
+  {
     token0: Tokens.WBTC,
     token1: Tokens.WMATIC
   },

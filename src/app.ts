@@ -3,77 +3,83 @@ import { UniswapFactory } from './ABI/UniswapFactory'
 import { UniswapPair } from './ABI/UniswapPair'
 import { UniswapRouter02 } from './ABI/UniswapRouter02'
 import { Exchanges, Tokens, Pairs } from './config'
-import { BN, toHex } from './Utils/BigNumber'
+import { BN, toHex, erc20HelperFactory } from './Utils'
 import { Pair } from './Types'
 import colors from 'colors'
-import { ERC20 } from './ABI/ERC20'
-
-const provider = new ethers.providers.StaticJsonRpcProvider(
-  'https://polygon-mainnet.g.alchemy.com/v2/fD5HjNcSOLvLdY1-Os1sPs9iGmrrpO4A',
-  137
-)
-
-const walletAddress = '0x52856Ca4ddb55A1420950857C7882cFC8E02281C'
+import { provider, wallet } from './Providers'
 
 const PROFIT_THRESHOLD_BELOW = 0.997
 const PROFIT_THRESHOLD_ABOVE = 1.003
 
+const tradeAmount = '0.01'
+
 async function main() {
   const exchanges = Exchanges.map((e) => ({
     name: e.name,
-    router: new ethers.Contract(e.router, UniswapRouter02, provider),
-    factory: new ethers.Contract(e.factory, UniswapFactory, provider),
+    router: new ethers.Contract(e.router, UniswapRouter02, wallet),
+    factory: new ethers.Contract(e.factory, UniswapFactory, wallet),
     pairs: [] as Pair[]
   }))
 
   for (const pair of Pairs) {
     for (const exc of exchanges) {
-      const pairAddress = await exc.factory.getPair(pair.token0.address, pair.token1.address)
+      /* TODO: 
+        1) approve in parallel all token in all exchanges
+        2) wait for all TX to avoid multiple approve calls
+       */
+      const token0Erc20 = erc20HelperFactory(pair.token0, wallet)
+      const token1Erc20 = erc20HelperFactory(pair.token1, wallet)
+
+      const [pairAddress] = await Promise.all([
+        exc.factory.getPair(pair.token0.address, pair.token1.address),
+        token0Erc20.approveIfNeeded({ owner: wallet.address, spender: exc.router.address }),
+        token1Erc20.approveIfNeeded({ owner: wallet.address, spender: exc.router.address })
+      ])
+
       const pairContract = new ethers.Contract(pairAddress, UniswapPair, provider)
       exc.pairs.push(new Pair(pairContract, pair.token0, pair.token1))
     }
   }
 
-  provider.on('block', async (b) => {
-    console.info('🚀 ~ file: app.ts ~ line 26 ~ provider.on ~ b', b)
-
+  provider.once('block', async (block) => {
+    console.log(colors.cyan(`[Block #${block}]`))
     // A forEach doesnt stop on Await, so it's faster
     //Pairs.forEach(async (_, i) => {
     // wanna debug
     for (let i = 0; i < Pairs.length; i++) {
       console.log(`\n`)
 
+      const ex0 = exchanges[0]
+      const ex1 = exchanges[1]
+
+      const pairEx0 = ex0.pairs[i]
+      const pairEx1 = ex1.pairs[i]
+
+      if (!pairEx0.exists || !pairEx1.exists) {
+        return
+      }
+
+      console.log(colors.magenta(`[${pairEx0.name}]`))
       try {
-        const ex0 = exchanges[0]
-        const ex1 = exchanges[1]
-
-        const pairEx0 = ex0.pairs[i]
-        const pairEx1 = ex1.pairs[i]
-
-        const token0 = pairEx0.token0
-        const token1 = pairEx0.token1
-        if (!pairEx0.exists || !pairEx1.exists) {
-          return
-        }
-
-        console.log(colors.magenta(`[${pairEx0.name}]`))
         // get reserves on both exchanges
         const [rawReservesPair0, rawReservesPair1] = await Promise.all([
           pairEx0.contract.getReserves(),
           pairEx1.contract.getReserves()
-        ])
+        ]).then((res) =>
+          res.map((reserves) => reserves.map((reserve: ethers.BigNumber) => reserve.toString()))
+        )
         // calc price on Exchange0
 
-        const reserves00 = rawReservesPair0[0].toString()
-        const reserves01 = rawReservesPair0[1].toString()
+        const reserves00 = rawReservesPair0[0]
+        const reserves01 = rawReservesPair0[1]
         const price0 = BN(reserves00).div(reserves01).toFixed()
         console.log(`[${ex0.name}] Reserves`, reserves00, reserves01)
         console.log(`[${ex0.name}] Price`, price0)
 
         // calc price on Exchange1
 
-        const reserves10 = rawReservesPair1[0].toString()
-        const reserves11 = rawReservesPair1[1].toString()
+        const reserves10 = rawReservesPair1[0]
+        const reserves11 = rawReservesPair1[1]
         const price1 = BN(reserves10).div(reserves11).toFixed()
         console.log(`[${ex1.name}] Reserves`, reserves10, reserves11)
         console.log(`[${ex1.name}] Price`, price1)
@@ -94,9 +100,9 @@ async function main() {
             )
           )
           // Swap params
-          const amountIn = toHex(pairEx0.token0.toPrecision('100'))
+          const amountIn = toHex(pairEx0.token0.toPrecision(tradeAmount))
           const amountOutMin = toHex(
-            BN(pairEx0.token0.toPrecision('100')).multipliedBy(1.001).toFixed(0)
+            BN(pairEx0.token0.toPrecision(tradeAmount)).multipliedBy(1.001).toFixed(0)
           )
           const route = [pairEx0.token0.address, pairEx0.token1.address]
           const deadline = toHex(
@@ -104,7 +110,7 @@ async function main() {
               .dividedBy(1000)
               .toFixed(0)
           )
-          const swapParams = [amountIn, amountOutMin, walletAddress, route, deadline]
+          const swapParams = [amountIn, amountOutMin, route, wallet.address, deadline]
 
           // calc gas cost
           const [gasLimitEx0, gasLimitEx1] = await Promise.all([
@@ -114,7 +120,7 @@ async function main() {
             ex1.router.estimateGas.swapExactTokensForTokens(...swapParams, {
               callValue: undefined
             })
-          ])
+          ]).then((res) => res.map((gasLimit) => gasLimit.toString()))
           console.log('GasLimits', gasLimitEx0, gasLimitEx1)
         }
       } catch (error) {
