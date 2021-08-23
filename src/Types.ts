@@ -33,4 +33,8 @@ export class Token {
   toPrecision(n: string) {
     return BN(n).multipliedBy(Math.pow(10, this.decimals)).toFixed()
   }
+
+  equals(token: Token) {
+    return token.address.toLowerCase() === this.address.toLowerCase()
+  }
 }

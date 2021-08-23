@@ -2,8 +2,18 @@ import { ethers } from 'ethers'
 import { UniswapFactory } from './ABI/UniswapFactory'
 import { UniswapPair } from './ABI/UniswapPair'
 import { UniswapRouter02 } from './ABI/UniswapRouter02'
-import { Exchanges, Trade, Pairs } from './config'
-import { BN, toHex, erc20HelperFactory, calcMinAmount } from './Utils'
+import { Exchanges, Trade, Pairs, Tokens } from './Config'
+import {
+  BN,
+  toHex,
+  erc20HelperFactory,
+  calcMinAmount,
+  normalizeSwapRoute,
+  getPairNativeToken,
+  getPairNonNativeToken,
+  calcDeadline,
+  gasLimitToFactorized
+} from './Utils'
 import { Pair } from './Types'
 import colors from 'colors'
 import { provider, wallet } from './Providers'
@@ -50,40 +60,102 @@ async function main() {
       const pairEx0 = ex0.pairs[i]
       const pairEx1 = ex1.pairs[i]
 
+      const { token0, token1 } = pairEx0
+
       if (!pairEx0.exists || !pairEx1.exists) {
         return
       }
 
       console.log(colors.magenta(`[${pairEx0.name}]`))
       try {
-        // get reserves on both exchanges
-        const [rawReservesPair0, rawReservesPair1] = await Promise.all([
-          pairEx0.contract.getReserves(),
-          pairEx1.contract.getReserves()
-        ]).then((res) =>
-          res.map((reserves) => reserves.map((reserve: ethers.BigNumber) => reserve.toString()))
+        /**
+         * Calc swaps amounts out
+         */
+        // Swap amount out on Exchange0
+        const fromToken = getPairNativeToken(pairEx0, Trade.nativeToken)
+        const midToken = getPairNonNativeToken(pairEx0, Trade.nativeToken)
+        const route0 = [fromToken, midToken]
+        const firstSwapAmountsOutArg = [
+          toHex(fromToken.toPrecision(Trade.tradeAmount)),
+          normalizeSwapRoute(route0)
+        ]
+        const firstSwapAmountsOut: string[] = await ex0.router
+          .getAmountsOut(...firstSwapAmountsOutArg, {
+            callValue: undefined
+          })
+          .then((res: ethers.BigNumber[]) =>
+            res.map((value, key) => route0[key].toFactorized(value.toString()))
+          )
+
+        const midTokenOut = firstSwapAmountsOut.pop()!
+
+        console.log(
+          `[${ex0.name}] 1st swap: ${Trade.tradeAmount} ${fromToken.symbol} = ${midTokenOut} ${route0[1].symbol}`
         )
-        // calc price on Exchange0
 
-        const reserves00 = rawReservesPair0[0]
-        const reserves01 = rawReservesPair0[1]
-        const price0 = BN(reserves00).div(reserves01).toFixed()
-        console.log(`[${ex0.name}] Reserves`, reserves00, reserves01)
-        console.log(`[${ex0.name}] Price`, price0)
+        // Swap amount out on Exchange1
+        const finalToken = fromToken
+        const route1 = [midToken, finalToken]
+        const secondSwapAmountsOutArg = [
+          toHex(midToken.toPrecision(midTokenOut)),
+          normalizeSwapRoute(route1)
+        ]
+        const secondSwapAmountsOut: string[] = await ex0.router
+          .getAmountsOut(...secondSwapAmountsOutArg, {
+            callValue: undefined
+          })
+          .then((res: ethers.BigNumber[]) =>
+            res.map((value, key) => route1[key].toFactorized(value.toString()))
+          )
 
-        // calc price on Exchange1
+        const finalTokenOut = secondSwapAmountsOut.pop()!
 
-        const reserves10 = rawReservesPair1[0]
-        const reserves11 = rawReservesPair1[1]
-        const price1 = BN(reserves10).div(reserves11).toFixed()
-        console.log(`[${ex1.name}] Reserves`, reserves10, reserves11)
-        console.log(`[${ex1.name}] Price`, price1)
+        console.log(
+          `[${ex1.name}] 2nd swap: ${midTokenOut} ${midToken.symbol} = ${finalTokenOut} ${finalToken.symbol}`
+        )
 
-        const difference = BN(price1).div(price0).toFixed()
-        console.log('[Difference]', difference)
+        /**
+         * Calc swaps gas limit
+         **/
+        const deadline = calcDeadline()
 
+        const firstAmountIn = fromToken.toPrecision(Trade.tradeAmount)
+        const firstAmountOutMin = calcMinAmount(
+          midToken.toPrecision(midTokenOut),
+          Trade.slippage,
+          0
+        )
+
+        // we do not need to calc exact args for second swap as this is just for estimation
+        const swapParamsToEstimate = [
+          toHex(firstAmountIn),
+          toHex(firstAmountOutMin),
+          normalizeSwapRoute(route0),
+          wallet.address,
+          deadline
+        ]
+
+        const [gasLimitEx0, gasLimitEx1] = await Promise.all(
+          [ex0, ex1].map((ex) =>
+            ex.router.estimateGas
+              .swapExactTokensForTokens(...swapParamsToEstimate, {
+                callValue: undefined
+              })
+              .then((gasLimit) => gasLimitToFactorized(gasLimit.toString()))
+          )
+        )
+
+        const estimatedGas = BN(gasLimitEx0).plus(gasLimitEx1).toFixed()
+        // final token out include LP fee
+        const outputAfterTrade = BN(finalTokenOut).minus(estimatedGas).toFixed()
+
+        // Calc profitability
+        const difference = BN(outputAfterTrade).dividedBy(Trade.tradeAmount).toFixed()
         const profitableToSellOnEx1 = BN(difference).isGreaterThan(Trade.profitThresholdAbove)
         const profitableSellOn0Ex0 = BN(difference).isGreaterThan(Trade.profitThresholdBelow)
+        if (!profitableToSellOnEx1 && !profitableSellOn0Ex0) {
+          console.log('[Skip Trade] No trading opportunity')
+        }
         if (profitableToSellOnEx1 || profitableSellOn0Ex0) {
           // Calc Swap direction
           const buyOn = profitableSellOn0Ex0 ? ex1 : ex0
@@ -94,27 +166,16 @@ async function main() {
               `[Trade Opportunity] ${pairEx0.name} Buy on ${buyOn.name} Sell on ${sellOn.name}`
             )
           )
-          // Swap params
-          const amountIn = toHex(pairEx0.token0.toPrecision(Trade.tradeAmount))
-          const amountOutMin = toHex(calcMinAmount(Trade.tradeAmount, Trade.slippage))
-          const route = [pairEx0.token0.address, pairEx0.token1.address]
-          const deadline = toHex(
-            BN(Date.now() + 60_000)
-              .dividedBy(1000)
-              .toFixed(0)
-          )
-          const swapParams = [amountIn, amountOutMin, route, wallet.address, deadline]
-
-          // calc gas cost
-          const [gasLimitEx0, gasLimitEx1] = await Promise.all([
-            ex0.router.estimateGas.swapExactTokensForTokens(...swapParams, {
-              callValue: undefined
-            }),
-            ex1.router.estimateGas.swapExactTokensForTokens(...swapParams, {
-              callValue: undefined
-            })
-          ]).then((res) => res.map((gasLimit) => gasLimit.toString()))
-          console.log('GasLimits', gasLimitEx0, gasLimitEx1)
+          /**
+           * TODO: create contract to execute trade
+           * trade({
+           *  ex0Router: '0x000....',
+           *  ex0SwapPath: ['0xaaa',..., '0xbbb']
+           *  ex1Router: '0x111....',
+           *  ex1SwapPath: ['0xaaa',..., '0xbbb']
+           *  tradeAmount: '000.1'
+           * })
+           *  */
         }
       } catch (error) {
         console.error(error)
