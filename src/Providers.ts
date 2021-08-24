@@ -1,6 +1,9 @@
 import { ethers } from 'ethers'
-import { Account, Trade } from './Config'
+import { Account, Provider } from './Config'
 
-export const provider = new ethers.providers.StaticJsonRpcProvider(Trade.jsonRpcUrl, Trade.chainId)
+export const provider = new ethers.providers.StaticJsonRpcProvider(
+  Provider.jsonRpcUrl,
+  Provider.chainId
+)
 
 export const wallet = new ethers.Wallet(Account.privateKey).connect(provider)
