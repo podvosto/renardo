@@ -55,10 +55,10 @@ export const erc20HelperFactory = (
   }
 
   const approveIfNeeded = async ({ owner, spender, amount }: AllowanceParams & ApproveParams) => {
-    const allowanceValue = 0 //await allowance({ owner, spender })
+    const allowanceValue = await allowance({ owner, spender })
 
     if (BN(allowanceValue).isZero()) {
-      return approve({ spender })
+      return approve({ spender, amount })
     }
     return false
   }

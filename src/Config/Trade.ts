@@ -8,5 +8,5 @@ export const Trade = {
   maxDeadline: `${60_000}`,
   nativeToken: Tokens.WMATIC,
   chainId: 137,
-  jsonRpcUrl: 'https://polygon-mainnet.g.alchemy.com/v2/fD5HjNcSOLvLdY1-Os1sPs9iGmrrpO4A'
+  jsonRpcUrl: 'https://rpc-mainnet.maticvigil.com/v1/e7f0574e6b5761ee482f017f4e03c4405e58c7fa'
 }

@@ -10,3 +10,5 @@ export const envVar = (name: string, defaultValue?: string) => {
   }
   return value
 }
+
+export const NOOP = () => {}

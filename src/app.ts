@@ -2,7 +2,7 @@ import { ethers } from 'ethers'
 import { UniswapFactory } from './ABI/UniswapFactory'
 import { UniswapPair } from './ABI/UniswapPair'
 import { UniswapRouter02 } from './ABI/UniswapRouter02'
-import { Exchanges, Trade, Pairs, Tokens } from './Config'
+import { Exchanges, Trade, Pairs } from './Config'
 import {
   BN,
   toHex,
@@ -12,7 +12,8 @@ import {
   getPairNativeToken,
   getPairNonNativeToken,
   calcDeadline,
-  gasLimitToFactorized
+  gasLimitToFactorized,
+  NOOP
 } from './Utils'
 import { Pair, Token } from './Types'
 import colors from 'colors'
@@ -54,6 +55,7 @@ async function main() {
           spender: router
         })
         .then((res) => (res ? res.wait(1) : Promise.resolve()))
+        .catch(NOOP)
     )
   )
 
