@@ -14,8 +14,8 @@
     "start:playground:watch": "nodemon --watch \"src/**\" --ext \"ts,json\" --exec yarn start:playground",
     "contract:compile": "truffle compile",
     "contract:dev:server": "ganache-cli -p 8545",
-    "contract:dev:deploy": "truffle migrate -network development",
-    "contract:deploy": "truffle migrate",
+    "contract:dev:deploy": "truffle migrate --network=polygon_testnet",
+    "contract:deploy": "truffle migrate --network=polygon_mainnet",
     "update-abis": "node scripts/update_abis.js"
   },
   "dependencies": {

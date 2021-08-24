@@ -2,11 +2,10 @@ import { ethers } from 'ethers'
 import { UniswapFactory } from './ABI/UniswapFactory'
 import { UniswapPair } from './ABI/UniswapPair'
 import { UniswapRouter02 } from './ABI/UniswapRouter02'
-import { Exchanges, Trade, Pairs } from './Config'
+import { Exchanges, Trade, Pairs, Contracts } from './Config'
 import {
   BN,
   toHex,
-  erc20HelperFactory,
   calcMinAmount,
   normalizeSwapRoute,
   getPairNativeToken,
@@ -18,6 +17,7 @@ import {
 import { Pair, Token } from './Types'
 import colors from 'colors'
 import { provider, wallet } from './Providers'
+import { ERC20Contract, ArbitrageTraderContract } from './Contracts'
 
 async function main() {
   const exchanges = Exchanges.map((e) => ({
@@ -49,7 +49,7 @@ async function main() {
 
   await Promise.all(
     approvingList.map(([router, token]) =>
-      erc20HelperFactory(token, wallet)
+      new ERC20Contract(token, wallet)
         .approveIfNeeded({
           owner: wallet.address,
           spender: router
@@ -58,6 +58,8 @@ async function main() {
         .catch(NOOP)
     )
   )
+
+  const arbitrageTrader = new ArbitrageTraderContract(Contracts.ArbitrageTrader, wallet)
 
   provider.once('block', async (block) => {
     console.log(colors.cyan(`[Block #${block}]`))
@@ -157,13 +159,26 @@ async function main() {
               .then((gasLimit) => gasLimitToFactorized(gasLimit.toString()))
           )
         )
-
         const estimatedGas = BN(gasLimitEx0).plus(gasLimitEx1).toFixed()
         // final token out include LP fee
         const outputAfterTrade = BN(finalTokenOut).minus(estimatedGas).toFixed()
 
+        const tradeArgs = {
+          inputAmount: firstAmountIn,
+          expectedOutputAmount: toHex(fromToken.toPrecision(outputAfterTrade)),
+          ex0Router: ex0.router.address,
+          ex1Router: ex1.router.address,
+          ex0Path: normalizeSwapRoute(route0),
+          ex1Path: normalizeSwapRoute(route1),
+          deadline: calcDeadline()
+        }
+        const arbitrageGas = await arbitrageTrader.estimateGasForTrade(tradeArgs)
+
+        const outputAfterTradeAndCall = BN(outputAfterTrade).minus(
+          gasLimitToFactorized(arbitrageGas)
+        )
         // Calc profitability
-        const difference = BN(outputAfterTrade).dividedBy(Trade.tradeAmount).toFixed()
+        const difference = BN(outputAfterTradeAndCall).dividedBy(Trade.tradeAmount).toFixed()
         const profitableToSellOnEx1 = BN(difference).isGreaterThan(Trade.profitThresholdAbove)
         const profitableSellOn0Ex0 = BN(difference).isGreaterThan(Trade.profitThresholdBelow)
         if (!profitableToSellOnEx1 && !profitableSellOn0Ex0) {
@@ -179,20 +194,22 @@ async function main() {
               `[Trade Opportunity] ${pairEx0.name} Buy on ${buyOn.name} Sell on ${sellOn.name}`
             )
           )
-          /**
-           * TODO: create contract to execute trade
-           * trade({
-           *  ex0Router: '0x000....',
-           *  ex0SwapPath: ['0xaaa',..., '0xbbb']
-           *  ex1Router: '0x111....',
-           *  ex1SwapPath: ['0xaaa',..., '0xbbb']
-           *  tradeAmount: '000.1'
-           * })
-           *  */
+/* not ready 
+          arbitrageTrader
+            .trade(tradeArgs, arbitrageGas)
+            .then((res) => {
+              console.log(res)
+              debugger
+            })
+            .catch((error) => {
+              console.error(error)
+              debugger
+            })
         }
       } catch (error) {
         console.error(error)
       }
+      */
     }
     //})
   })

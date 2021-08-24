@@ -1,5 +1,4 @@
 export * from './BigNumber'
-export * from './ERC20'
 export * from './Trade'
 export * from './Pair'
 
