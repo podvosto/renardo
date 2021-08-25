@@ -1,4 +1,4 @@
-import { ethers } from 'ethers'
+import colors from 'colors'
 import { Contracts, UnifiExchange, QuickSwapExchange, Tokens } from './Config'
 
 import { wallet } from './Providers'
@@ -9,7 +9,7 @@ async function gimmeTheMoney(contract: ArbitrageTraderContract) {
   contract
     .withdrawToken({
       tokenAddress: Tokens.WMATIC.address,
-      amount: toHex(Tokens.WMATIC.toPrecision('0.3'))
+      amount: toHex(Tokens.WMATIC.toPrecision('0.149'))
     })
     .then((res) => {
       console.log(res)
@@ -22,7 +22,6 @@ async function gimmeTheMoney(contract: ArbitrageTraderContract) {
 }
 
 async function doTheTrade(contract: ArbitrageTraderContract) {
-  const balance = '300000000000000000'
   const args = {
     ex0Router: UnifiExchange.router,
     ex1Router: QuickSwapExchange.router,
@@ -34,20 +33,23 @@ async function doTheTrade(contract: ArbitrageTraderContract) {
     deadline: calcDeadline()
   }
 
-  const gasLimit = gasLimitToPrecision('0.01') //await contract.estimateGasForTrade(args)
+  const gasLimit = await contract.estimateGasForTrade(args)
+  const gasPrice = undefined
+  const nonce = undefined
   contract
-    .trade(args, gasLimit)
+    .trade(args, { gasPrice, gasLimit: toHex(gasLimit), nonce })
     .then((res) => {
-      debugger
-      console.log(res)
+      console.log(
+        colors.green(`[Success]`),
+        colors.magenta(`https://polygonscan.com/tx/${res.hash}`)
+      )
     })
     .catch((error) => {
-      debugger
-      console.log(error)
+      console.log(error.message)
     })
 }
 
 ;(async () => {
   const contract = new ArbitrageTraderContract(Contracts.ArbitrageTrader, wallet)
-  doTheTrade(contract)
+  gimmeTheMoney(contract)
 })()

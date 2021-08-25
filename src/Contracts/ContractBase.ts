@@ -1,6 +1,10 @@
 import { ethers } from 'ethers'
-import { gasLimitToFactorized } from '../Utils'
 
+export interface ExecuteOptions {
+  gasLimit: string
+  gasPrice?: string
+  nonce?: string
+}
 export class ContractBase {
   public readonly contract: ethers.Contract
   constructor(

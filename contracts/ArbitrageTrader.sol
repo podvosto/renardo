@@ -14,7 +14,7 @@ contract ArbitrageTrader is Owned {
     address ex1Router,
     address[] calldata ex1Path,
     uint256 deadline
-  ) external {
+  ) external onlyOwner {
     require(deadline >= block.timestamp, 'TRADE_DEADLINE_EXPIRED');
     // check balance
     uint256 tokenBalance = IERC20(ex0Path[0]).balanceOf(address(this));

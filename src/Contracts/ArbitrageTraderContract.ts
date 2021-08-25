@@ -1,7 +1,7 @@
 import { ArbitrageTraderABI } from '../ABI/ArbitrageTrader'
 
 import { ethers } from 'ethers'
-import { ContractBase } from './ContractBase'
+import { ContractBase, ExecuteOptions } from './ContractBase'
 import { gasLimitToPrecision } from '../Utils'
 
 interface TradeParams {
@@ -38,7 +38,7 @@ export class ArbitrageTraderContract extends ContractBase {
     return this.contract.estimateGas.trade(...args).then((res) => res.toString())
   }
 
-  trade(p: TradeParams, gasLimit: string): Promise<any> {
+  trade(p: TradeParams, opts: ExecuteOptions): Promise<any> {
     const args = [
       p.inputAmount,
       p.expectedOutputAmount,
@@ -49,16 +49,15 @@ export class ArbitrageTraderContract extends ContractBase {
       p.deadline
     ]
 
-    return this.contract.trade(...args, { gasLimit })
+    return this.contract.trade(...args, opts)
   }
 
   async withdrawToken({ tokenAddress, amount }: WithdrawParams): Promise<any> {
     const args = [tokenAddress, amount]
 
-    const gasLimit = gasLimitToPrecision('0.04') /*await this.contract.estimateGas
+    const gasLimit = await this.contract.estimateGas
       .withdrawToken(...args)
       .then((res) => res.toString())
-      */
 
     return this.contract.withdrawToken(...args, { gasLimit })
   }
