@@ -1,7 +1,7 @@
 import { wallet } from '../../Providers'
 import { Contracts, Trade } from '../../Config'
 import { ArbitrageTraderContract } from '../../Contracts'
-import { AsyncLoggerFactory } from '../../Utils/AsyncLogger'
+import { AsyncLoggerFactory, AsyncLogger } from '../../Utils/AsyncLogger'
 import {
   getPairNonNativeToken,
   getPairNativeToken,
@@ -23,8 +23,9 @@ export const DirectArbitrageStrategy = async (
   const arbitrageTrader = new ArbitrageTraderContract(Contracts.ArbitrageTrader, wallet)
   return (block: string) => {
     // A forEach doesnt stop on Await, so it's faster
-    exchanges[0].pairs.forEach(async (_: any, i: number) => {
-      const logger = AsyncLoggerFactory(block)
+
+    exchanges[0].pairs.map(async (_: any, i: number) => {
+      const logger = AsyncLoggerFactory(`\n[Block #${block}]`)
 
       const ex0 = exchanges[0]
       const ex1 = exchanges[1]
@@ -140,10 +141,10 @@ export const DirectArbitrageStrategy = async (
               logger.log(colors.red(`[Failed Tx]`), error)
             })
         }
-        logger.print()
       } catch (error) {
-        console.error(error)
+        logger.log(colors.red('[Error]'), error)
       }
+      logger.print()
     })
   }
 }
