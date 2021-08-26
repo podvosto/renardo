@@ -16,7 +16,9 @@
     "contract:dev:server": "ganache-cli -p 8545",
     "contract:dev:deploy": "truffle migrate --network=polygon_testnet",
     "contract:deploy": "truffle migrate --network=polygon_mainnet",
-    "update-abis": "node scripts/update_abis.js"
+    "update-abis": "node scripts/update_abis.js",
+    "deploy:renardo": "pm2 deploy pm2.json mainnet",
+    "deploy:env": "scp .env.* deployer@renardo-server:/home/deployer"
   },
   "dependencies": {
     "@truffle/hdwallet-provider": "^1.5.0",

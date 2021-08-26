@@ -1,0 +1,25 @@
+{
+  "apps": [
+    {
+      "name": "renardo",
+      "script": "./build/src/app.js",
+      "instances": 1,
+      "autorestart": true,
+      "watch": false,
+      "max_memory_restart": "1G",
+      "env_mainnet": {
+        "NODE_ENV": "production"
+      }
+    }
+  ],
+  "deploy": {
+    "mainnet": {
+      "user": "deployer",
+      "host": "renardo-server",
+      "ref": "origin/master",
+      "repo": "git@github.com:podvosto/renardo.git",
+      "path": "/home/deployer/renardo",
+      "post-deploy": "yarn && cp ~/.env.renardo .env && npm run build && pm2 reload pm2.json --env mainnet"
+    }
+  }
+}

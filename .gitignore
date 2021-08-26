@@ -1,4 +1,5 @@
 .env
 .env.test
+.env.renardo
 build
 node_modules
