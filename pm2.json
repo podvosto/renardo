@@ -19,7 +19,7 @@
       "ref": "origin/master",
       "repo": "git@github.com:podvosto/renardo.git",
       "path": "/home/deployer/renardo",
-      "post-deploy": "yarn && cp ~/.env.renardo .env && npm run build && pm2 reload pm2.json --env mainnet"
+      "post-deploy": "yarn && npm run build && cp ~/.env.renardo .env && pm2 reload pm2.json --env mainnet"
     }
   }
 }

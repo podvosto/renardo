@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 import { Exchanges, Pairs } from './Config'
 
 import { provider } from './Providers'
