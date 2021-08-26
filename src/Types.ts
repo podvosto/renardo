@@ -1,6 +1,22 @@
 import { ethers } from 'ethers'
 import { BN } from './Utils/BigNumber'
 
+export interface InitializedExchange {
+  name: string
+  router: ethers.Contract
+  factory: ethers.Contract
+  pairs: Pair[]
+}
+
+export interface PairData {
+  token0: Token
+  token1: Token
+}
+export interface ExchangeData {
+  name: string
+  router: string
+  factory: string
+}
 export class Pair {
   constructor(
     public contract: ethers.Contract,

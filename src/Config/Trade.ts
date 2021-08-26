@@ -6,5 +6,5 @@ export const Trade = {
   tradeAmount: '0.01',
   slippage: '0.01',
   maxDeadline: `${60_000}`,
-  nativeToken: Tokens.WMATIC
+  nativeToken: Tokens.WMATIC // todo: should be parametrizable on config as chainId
 }
