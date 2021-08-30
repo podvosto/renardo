@@ -1,6 +1,9 @@
 const fs = require('fs')
 
-const ABIS_TO_COPY = { ArbitrageTrader: './build/ArbitrageTrader.json' }
+const ABIS_TO_COPY = {
+  DirectArbitrageTrader: './build/DirectArbitrageTrader.json',
+  PivotArbitrageTrader: './build/PivotArbitrageTrader.json'
+}
 
 Object.entries(ABIS_TO_COPY).forEach(([name, buildFilePath]) => {
   const data = fs.readFileSync(buildFilePath).toString()

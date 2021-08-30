@@ -1,6 +1,8 @@
 import { ethers } from 'ethers'
 import { BN } from './Utils/BigNumber'
 
+export type Strategy = 'PIVOT' | 'DIRECT'
+
 export interface InitializedExchange {
   name: string
   router: ethers.Contract
@@ -21,7 +23,8 @@ export class Pair {
   constructor(
     public contract: ethers.Contract,
     public readonly token0: Token,
-    public readonly token1: Token
+    public readonly token1: Token,
+    public readonly exchange: Exchange
   ) {}
   get name() {
     return `${this.token0.symbol}-${this.token1.symbol}`
@@ -33,8 +36,23 @@ export class Pair {
   get exists() {
     return parseInt(this.contract.address, 16) !== 0
   }
+  contains(find: Token) {
+    return this.token0.equals(find) || this.token1.equals(find)
+  }
 }
 
+export class Exchange {
+  public readonly pairs: Pair[] = []
+  public constructor(
+    public readonly name: string,
+    public readonly router: ethers.Contract,
+    public readonly factory: ethers.Contract
+  ) {}
+
+  addPair(pair: Pair) {
+    this.pairs.push(pair)
+  }
+}
 export class Token {
   constructor(
     public readonly symbol: string,

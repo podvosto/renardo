@@ -5,7 +5,7 @@ import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 import '@uniswap/v2-core/contracts/interfaces/IERC20.sol';
 import './Utils/Owned.sol';
 
-contract ArbitrageTrader is Owned {
+contract DirectArbitrageTrader is Owned {
   function trade(
     uint256 inputAmount,
     uint256 expectedOutputAmount,

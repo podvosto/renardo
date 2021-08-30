@@ -1,5 +1,7 @@
-var ArbitrageTrader = artifacts.require('ArbitrageTrader')
+var DirectArbitrageTrader = artifacts.require('DirectArbitrageTrader')
+var PivotArbitrageTrader = artifacts.require('PivotArbitrageTrader')
 
 module.exports = function (deployer) {
-  deployer.deploy(ArbitrageTrader)
+  deployer.deploy(DirectArbitrageTrader)
+  deployer.deploy(PivotArbitrageTrader)
 }

@@ -1,6 +1,7 @@
+import { PairData } from '../Types'
 import { Tokens } from './Tokens'
 
-export const Pairs = [
+export const UnfiPairs: PairData[] = [
   {
     token0: Tokens.WBTC,
     token1: Tokens.WMATIC
@@ -46,3 +47,5 @@ export const Pairs = [
     token1: Tokens.WMATIC
   }
 ]
+
+export const Pairs = UnfiPairs

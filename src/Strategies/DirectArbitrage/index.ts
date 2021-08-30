@@ -1,26 +1,22 @@
 import { wallet } from '../../Providers'
 import { Contracts, Trade } from '../../Config'
-import { ArbitrageTraderContract } from '../../Contracts'
-import { AsyncLoggerFactory, AsyncLogger } from '../../Utils/AsyncLogger'
-import {
-  getPairNonNativeToken,
-  getPairNativeToken,
-  toHex,
-  normalizeSwapRoute,
-  BN,
-  calcDeadline
-} from '../../Utils'
+import { DirectArbitrageTraderContract } from '../../Contracts'
+import { AsyncLoggerFactory } from '../../Utils/AsyncLogger'
+import { toHex, BN } from '../../Utils/BigNumber'
+import { getPairNonNativeToken, getPairNativeToken } from '../../Utils/Pair'
+import { calcDeadline, normalizeSwapRoute } from '../../Utils/Trade'
 import { ethers } from 'ethers'
 import colors from 'colors'
 import { ExchangeData, PairData } from '../../Types'
 import { exchangesInitializer } from './exchangesInitializer'
+import { checkProfitability } from '../Utils'
 
 export const DirectArbitrageStrategy = async (
   exchangesData: ExchangeData[],
   pairsData: PairData[]
 ) => {
   const exchanges = await exchangesInitializer(exchangesData, pairsData)
-  const arbitrageTrader = new ArbitrageTraderContract(Contracts.ArbitrageTrader, wallet)
+  const arbitrageTrader = new DirectArbitrageTraderContract(Contracts.DirectArbitrageTrader, wallet)
   return (block: string) => {
     // A forEach doesnt stop on Await, so it's faster
 
@@ -104,16 +100,12 @@ export const DirectArbitrageStrategy = async (
         tradeArgs.expectedOutputAmount = outputAfterTrade
 
         // Calc profitability
-        const difference = BN(outputAfterTrade).dividedBy(Trade.tradeAmount).toFixed()
-        const profitableThisWay = BN(difference).isGreaterThan(Trade.profitThresholdAbove)
-        const profitableRevertingPaths = BN(difference).isGreaterThan(Trade.profitThresholdBelow)
-        if (!profitableThisWay && !profitableRevertingPaths) {
-          logger.log('[Skip Trade] No trading opportunity')
-        }
-        if (profitableThisWay || profitableRevertingPaths) {
+
+        const { profitable, reversePaths } = checkProfitability(Trade.tradeAmount, outputAfterTrade)
+        if (profitable) {
           // Calc Swap direction
-          const buyOn = profitableRevertingPaths ? ex1 : ex0
-          const sellOn = profitableRevertingPaths ? ex0 : ex1
+          const buyOn = reversePaths ? ex1 : ex0
+          const sellOn = reversePaths ? ex0 : ex1
 
           logger.log(
             colors.green(
@@ -122,7 +114,7 @@ export const DirectArbitrageStrategy = async (
           )
 
           let tradeFinalArgs = tradeArgs
-          if (profitableRevertingPaths) {
+          if (reversePaths) {
             tradeFinalArgs.ex0Router = tradeFinalArgs.ex1Router
             tradeFinalArgs.ex0Path = tradeFinalArgs.ex1Path
             tradeFinalArgs.ex1Router = tradeFinalArgs.ex0Router

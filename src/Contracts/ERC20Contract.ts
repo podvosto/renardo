@@ -2,7 +2,7 @@ import colors from 'colors'
 import { ethers } from 'ethers'
 import { ERC20 } from '../ABI/ERC20'
 import { Token } from '../Types'
-import { BN } from '../Utils'
+import { BN } from '../Utils/BigNumber'
 import { ContractBase } from './ContractBase'
 
 const defaultApprovalValue = BN(2).pow(256).minus(1).toFixed()

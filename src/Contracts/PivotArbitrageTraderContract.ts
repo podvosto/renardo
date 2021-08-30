@@ -1,8 +1,8 @@
-import { ArbitrageTraderABI } from '../ABI/ArbitrageTrader'
+import { DirectArbitrageTraderABI } from '../ABI/DirectArbitrageTrader'
 
 import { ethers } from 'ethers'
 import { ContractBase, ExecuteOptions } from './ContractBase'
-import { gasLimitToPrecision } from '../Utils'
+import { gasLimitToPrecision } from '../Utils/Trade'
 
 interface TradeParams {
   inputAmount: string
@@ -11,6 +11,8 @@ interface TradeParams {
   ex0Path: string[]
   ex1Router: string
   ex1Path: string[]
+  ex2Router: string
+  ex2Path: string[]
   deadline: string
 }
 
@@ -19,9 +21,9 @@ interface WithdrawParams {
   amount: string
 }
 
-export class ArbitrageTraderContract extends ContractBase {
+export class PivotArbitrageTraderContract extends ContractBase {
   constructor(address: string, provider: ethers.Signer | ethers.providers.Provider) {
-    super(address, ArbitrageTraderABI, provider)
+    super(address, DirectArbitrageTraderABI, provider)
   }
 
   estimateGasForTrade(p: TradeParams): Promise<string> {
@@ -32,6 +34,8 @@ export class ArbitrageTraderContract extends ContractBase {
       p.ex0Path,
       p.ex1Router,
       p.ex1Path,
+      p.ex2Router,
+      p.ex2Path,
       p.deadline
     ]
 
@@ -46,6 +50,8 @@ export class ArbitrageTraderContract extends ContractBase {
       p.ex0Path,
       p.ex1Router,
       p.ex1Path,
+      p.ex2Router,
+      p.ex2Path,
       p.deadline
     ]
 

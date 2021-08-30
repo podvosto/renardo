@@ -2,10 +2,11 @@ import colors from 'colors'
 import { Contracts, UnifiExchange, QuickSwapExchange, Tokens } from './Config'
 
 import { wallet } from './Providers'
-import { ArbitrageTraderContract } from './Contracts'
-import { calcDeadline, gasLimitToPrecision, toHex } from './Utils'
+import { DirectArbitrageTraderContract } from './Contracts'
+import { calcDeadline, gasLimitToPrecision } from './Utils/Trade'
+import { toHex } from './Utils/BigNumber'
 
-async function gimmeTheMoney(contract: ArbitrageTraderContract) {
+async function gimmeTheMoney(contract: DirectArbitrageTraderContract) {
   contract
     .withdrawToken({
       tokenAddress: Tokens.WMATIC.address,
@@ -21,7 +22,7 @@ async function gimmeTheMoney(contract: ArbitrageTraderContract) {
     })
 }
 
-async function doTheTrade(contract: ArbitrageTraderContract) {
+async function doTheTrade(contract: DirectArbitrageTraderContract) {
   const args = {
     ex0Router: UnifiExchange.router,
     ex1Router: QuickSwapExchange.router,
@@ -50,6 +51,6 @@ async function doTheTrade(contract: ArbitrageTraderContract) {
 }
 
 ;(async () => {
-  const contract = new ArbitrageTraderContract(Contracts.ArbitrageTrader, wallet)
+  const contract = new DirectArbitrageTraderContract(Contracts.DirectArbitrageTrader, wallet)
   gimmeTheMoney(contract)
 })()
