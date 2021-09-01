@@ -5,6 +5,10 @@ export interface ExecuteOptions {
   gasPrice?: string
   nonce?: string
 }
+
+export interface ExecutionResponse {
+  hash: string
+}
 export class ContractBase {
   public readonly contract: ethers.Contract
   constructor(

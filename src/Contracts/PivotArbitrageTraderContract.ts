@@ -1,7 +1,7 @@
 import { PivotArbitrageTraderABI } from '../ABI/PivotArbitrageTrader'
 
 import { ethers } from 'ethers'
-import { ContractBase, ExecuteOptions } from './ContractBase'
+import { ContractBase, ExecuteOptions, ExecutionResponse } from './ContractBase'
 
 interface TradeParams {
   inputAmount: string
@@ -41,7 +41,7 @@ export class PivotArbitrageTraderContract extends ContractBase {
     return this.contract.estimateGas.trade(...args).then((res) => res.toString())
   }
 
-  trade(p: TradeParams, opts: ExecuteOptions): Promise<any> {
+  trade(p: TradeParams, opts: ExecuteOptions): Promise<ExecutionResponse> {
     const args = [
       p.inputAmount,
       p.expectedOutputAmount,

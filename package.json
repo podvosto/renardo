@@ -7,6 +7,7 @@
     "build": "tsc --incremental",
     "build:watch": "tsc --incremental --watch",
     "tsc": "tsc --incremental",
+    "cli": "node -r dotenv/config -r ts-node/register --inspect src/cli/index.ts",
     "start": "node build/app.js",
     "start:dev": "node -r dotenv/config -r ts-node/register --inspect src/app.ts",
     "start:dev:watch": "nodemon --watch \"src/**\" --ext \"ts,json\" --exec yarn start:dev",
@@ -28,10 +29,12 @@
     "colors": "^1.4.0",
     "dotenv": "^10.0.0",
     "ethereum-multicall": "^2.7.1",
-    "ethers": "^5.4.4",
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^2.6.1",
+    "commander": "^8.1.0",
+    "ethers": "^5.4.4"
   },
   "devDependencies": {
+    "@types/commander": "^2.12.2",
     "@types/node": "^16.6.1",
     "@types/node-fetch": "^2.5.12",
     "eslint": "^7.32.0",

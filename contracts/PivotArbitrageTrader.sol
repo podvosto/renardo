@@ -4,8 +4,9 @@ pragma solidity >=0.6.2;
 import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 import '@uniswap/v2-core/contracts/interfaces/IERC20.sol';
 import './Utils/Owned.sol';
+import './Utils/ATM.sol';
 
-contract PivotArbitrageTrader is Owned {
+contract PivotArbitrageTrader is Owned, ATM {
   uint256 constant maxApproval = uint256(-1);
 
   function trade(
@@ -48,10 +49,6 @@ contract PivotArbitrageTrader is Owned {
     )[path.length - 1];
 
     return amountOut;
-  }
-
-  function withdrawToken(address tokenAddress, uint256 amount) external onlyOwner {
-    IERC20(tokenAddress).transfer(msg.sender, amount);
   }
 
   function safeApprove(

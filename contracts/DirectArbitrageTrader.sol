@@ -3,9 +3,10 @@ pragma solidity >=0.6.2;
 
 import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 import '@uniswap/v2-core/contracts/interfaces/IERC20.sol';
+import './Utils/ATM.sol';
 import './Utils/Owned.sol';
 
-contract DirectArbitrageTrader is Owned {
+contract DirectArbitrageTrader is Owned, ATM {
   function trade(
     uint256 inputAmount,
     uint256 expectedOutputAmount,
@@ -46,9 +47,5 @@ contract DirectArbitrageTrader is Owned {
     )[1];
 
     return amountOut;
-  }
-
-  function withdrawToken(address tokenAddress, uint256 amount) external onlyOwner {
-    IERC20(tokenAddress).transfer(msg.sender, amount);
   }
 }

@@ -1,8 +1,7 @@
 import { DirectArbitrageTraderABI } from '../ABI/DirectArbitrageTrader'
 
 import { ethers } from 'ethers'
-import { ContractBase, ExecuteOptions } from './ContractBase'
-import { gasLimitToPrecision } from '../Utils/Trade'
+import { ContractBase, ExecuteOptions, ExecutionResponse } from './ContractBase'
 
 interface TradeParams {
   inputAmount: string
@@ -38,7 +37,7 @@ export class DirectArbitrageTraderContract extends ContractBase {
     return this.contract.estimateGas.trade(...args).then((res) => res.toString())
   }
 
-  trade(p: TradeParams, opts: ExecuteOptions): Promise<any> {
+  trade(p: TradeParams, opts: ExecuteOptions): Promise<ExecutionResponse> {
     const args = [
       p.inputAmount,
       p.expectedOutputAmount,
@@ -52,7 +51,7 @@ export class DirectArbitrageTraderContract extends ContractBase {
     return this.contract.trade(...args, opts)
   }
 
-  async withdrawToken({ tokenAddress, amount }: WithdrawParams): Promise<any> {
+  async withdrawToken({ tokenAddress, amount }: WithdrawParams): Promise<ExecutionResponse> {
     const args = [tokenAddress, amount]
 
     const gasLimit = await this.contract.estimateGas
