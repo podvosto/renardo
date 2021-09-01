@@ -1,9 +1,16 @@
 import { ethers } from 'ethers'
-import { checkProfitability } from '../Utils'
-import { toHex } from '../../Utils/BigNumber'
-import { normalizeSwapRoute } from '../../Utils/Trade'
+import { checkProfitability, ProfitabilityResult } from '../Utils'
+import { BN, toHex } from '../../Utils/BigNumber'
+import { calcDeadline, gasLimitToFactorized, normalizeSwapRoute } from '../../Utils/Trade'
 import { Pair, Token } from '../../Types'
+import { PivotArbitrageTraderContract } from '../../Contracts'
 
+type PreTradeResult = ProfitabilityResult & {
+  outputAfterTrade: string
+  execute: () => Promise<{ hash: string }>
+}
+
+const NOT_PROFITABLE_EXECUTE = () => Promise.reject('NOT_PROFITABLE')
 export class RouteSwap {
   constructor(public readonly pair: Pair, public path: [Token, Token]) {}
   get name() {
@@ -24,19 +31,41 @@ export class Route {
     return new Route(route)
   }
 
-  async trade(amount: string) {
+  async prepareTrade(
+    amount: string,
+    trader: PivotArbitrageTraderContract
+  ): Promise<PreTradeResult> {
     const [firstSwap, pivotSwap, lastSwap] = this.route
     const firstSwapOut = await this.amountsOut(firstSwap, amount)
     const pivotSwapOut = await this.amountsOut(pivotSwap, firstSwapOut)
     const lastSwapOut = await this.amountsOut(lastSwap, pivotSwapOut)
 
-    // todo calc SC gas
-    const outputAfterTrade = lastSwapOut
+    const tradeParamsFactory = (outputAmount: string) => ({
+      deadline: calcDeadline(),
+      inputAmount: toHex(firstSwap.path[0].toPrecision(amount)),
+      expectedOutputAmount: toHex(outputAmount),
+      ex0Path: normalizeSwapRoute(firstSwap.path),
+      ex0Router: firstSwap.pair.exchange.router.address,
+      ex1Path: normalizeSwapRoute(pivotSwap.path),
+      ex1Router: pivotSwap.pair.exchange.router.address,
+      ex2Path: normalizeSwapRoute(lastSwap.path),
+      ex2Router: lastSwap.pair.exchange.router.address
+    })
 
+    const underPricedOutputToCalcGas = BN(amount).multipliedBy(0.9).toFixed(0)
+    const gasLimit = await trader.estimateGasForTrade(
+      tradeParamsFactory(underPricedOutputToCalcGas)
+    )
+
+    const outputAfterTrade = BN(lastSwapOut).minus(gasLimitToFactorized(gasLimit)).toFixed()
+
+    const outputAmout = toHex(lastSwap.path[1].toPrecision(lastSwapOut))
     // check result
     const profitabilityResult = checkProfitability(amount, outputAfterTrade)
+    const execute = () => trader.trade(tradeParamsFactory(outputAmout), { gasLimit })
 
     return {
+      execute,
       outputAfterTrade,
       ...profitabilityResult
     }

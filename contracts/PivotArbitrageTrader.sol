@@ -6,6 +6,8 @@ import '@uniswap/v2-core/contracts/interfaces/IERC20.sol';
 import './Utils/Owned.sol';
 
 contract PivotArbitrageTrader is Owned {
+  uint256 constant maxApproval = uint256(-1);
+
   function trade(
     uint256 inputAmount,
     uint256 expectedOutputAmount,
@@ -18,40 +20,51 @@ contract PivotArbitrageTrader is Owned {
     uint256 deadline
   ) external onlyOwner {
     require(deadline >= block.timestamp, 'TRADE_DEADLINE_EXPIRED');
-    // check balance
-    uint256 tokenBalance = IERC20(ex0Path[0]).balanceOf(address(this));
-    require(inputAmount <= tokenBalance, 'INPUT_AMOUNT_EXCEEDS_BALANCE');
 
-    uint256 firstSwapOut = _swap(inputAmount, ex0Router, ex0Path, deadline);
-    uint256 pivotSwapOut = _swap(firstSwapOut, ex1Router, ex1Path, deadline);
-    uint256 outputAmount = _swap(pivotSwapOut, ex2Router, ex2Path, deadline);
+    uint256 firstSwapOut = swap(inputAmount, ex0Router, ex0Path, deadline);
+    uint256 pivotSwapOut = swap(firstSwapOut, ex1Router, ex1Path, deadline);
+    uint256 outputAmount = swap(pivotSwapOut, ex2Router, ex2Path, deadline);
     require(outputAmount >= expectedOutputAmount, 'TRADE_OUTPUT_UNDER_EXPECTATIONS');
   }
 
   //
 
-  function _swap(
+  function swap(
     uint256 inputAmount,
     address router,
     address[] memory path,
     uint256 deadline
   ) private returns (uint256) {
-    uint256 MAX_INT = 2**256 - 1;
-    IERC20(path[0]).approve(router, MAX_INT);
+    safeApprove(path[0], router, maxApproval);
 
     IUniswapV2Router02 exRouter = IUniswapV2Router02(router);
+
     uint256 amountOut = exRouter.swapExactTokensForTokens(
       inputAmount,
       0,
       path,
       address(this),
       deadline
-    )[1];
+    )[path.length - 1];
 
     return amountOut;
   }
 
   function withdrawToken(address tokenAddress, uint256 amount) external onlyOwner {
     IERC20(tokenAddress).transfer(msg.sender, amount);
+  }
+
+  function safeApprove(
+    address tokenAddress,
+    address spender,
+    uint256 amount
+  ) internal {
+    IERC20 token = IERC20(tokenAddress);
+    uint256 allowance = token.allowance(address(this), address(spender));
+
+    if (allowance != 0) {
+      token.approve(spender, 0);
+    }
+    token.approve(spender, amount);
   }
 }

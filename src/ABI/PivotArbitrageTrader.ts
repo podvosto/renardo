@@ -1,4 +1,4 @@
-export const DirectArbitrageTraderABI = [
+export const PivotArbitrageTraderABI = [
   {
     anonymous: false,
     inputs: [
@@ -96,6 +96,16 @@ export const DirectArbitrageTraderABI = [
       {
         internalType: 'address[]',
         name: 'ex1Path',
+        type: 'address[]'
+      },
+      {
+        internalType: 'address',
+        name: 'ex2Router',
+        type: 'address'
+      },
+      {
+        internalType: 'address[]',
+        name: 'ex2Path',
         type: 'address[]'
       },
       {

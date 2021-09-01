@@ -15,16 +15,35 @@ export const PivotArbitrageStrategy = async (
 ) => {
   const routes = await pathFinder(exchangesData, pairsDataFile)
   // TODO create pivot trader
-  const arbitrageTrader = new PivotArbitrageTraderContract(Contracts.PivotArbitrageTrader, wallet)
+  const trader = new PivotArbitrageTraderContract(Contracts.PivotArbitrageTrader, wallet)
   return async (block: string) => {
     // A forEach doesnt stop on Await, so it's faster
-    getRandom<Route[]>(routes, 100).forEach(async (route) => {
+    getRandom<Route[]>(routes, routes.length).forEach(async (route) => {
       const logger = AsyncLoggerFactory(`\n[Block #${block}]`)
-
+      if (route.route[1].pair.address !== '0xcddf91a44c579765227722da371136a4f12dc81b') {
+        return
+      }
       try {
-        let tradeResult = await route.trade(Trade.tradeAmount)
+        let tradeResult = await route.prepareTrade(Trade.tradeAmount, trader).catch((err) => {
+          debugger
+          throw err
+        })
 
-        const { profitable, outputAfterTrade, percentage } = tradeResult
+        const { profitable, outputAfterTrade, reversePaths, percentage } = tradeResult
+
+        let execution: any = false
+        if (profitable) {
+          execution = await tradeResult
+            .execute()
+            .then((res) => {
+              debugger
+              return res
+            })
+            .catch((err) => {
+              throw err
+              debugger
+            })
+        }
 
         logger.log(
           [
@@ -32,19 +51,16 @@ export const PivotArbitrageStrategy = async (
             `Route = ${route.name}]`,
             `Input = ${Trade.tradeAmount}`,
             `Output = ${outputAfterTrade}`,
-            `Profitable = ${profitable} (${percentage}%)`
+            `Profitable = ${profitable} (${percentage}%)`,
+            `Execution:`,
+            execution?.hash
           ].join('\n')
         )
 
-        //  else if (BN(percentage).abs().isGreaterThan('0.5')) {
-        //   debugger
-        // }
         logger.print()
-        if (profitable) {
-          debugger
-        }
       } catch (error) {
         debugger
+        //console.error(`[Error] ${route.name}`, error.message)
       }
     })
   }

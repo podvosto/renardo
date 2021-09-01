@@ -1,7 +1,7 @@
 import { Trade } from '../Config'
 import { BN } from '../Utils/BigNumber'
 
-interface ProfitabilityResult {
+export interface ProfitabilityResult {
   profitable: boolean
   reversePaths: boolean
   percentage: string

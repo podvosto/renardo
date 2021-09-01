@@ -1,8 +1,7 @@
-import { DirectArbitrageTraderABI } from '../ABI/DirectArbitrageTrader'
+import { PivotArbitrageTraderABI } from '../ABI/PivotArbitrageTrader'
 
 import { ethers } from 'ethers'
 import { ContractBase, ExecuteOptions } from './ContractBase'
-import { gasLimitToPrecision } from '../Utils/Trade'
 
 interface TradeParams {
   inputAmount: string
@@ -23,7 +22,7 @@ interface WithdrawParams {
 
 export class PivotArbitrageTraderContract extends ContractBase {
   constructor(address: string, provider: ethers.Signer | ethers.providers.Provider) {
-    super(address, DirectArbitrageTraderABI, provider)
+    super(address, PivotArbitrageTraderABI, provider)
   }
 
   estimateGasForTrade(p: TradeParams): Promise<string> {
