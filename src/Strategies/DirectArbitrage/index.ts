@@ -126,7 +126,7 @@ export const DirectArbitrageStrategy = async (
             .then((res) => {
               logger.log(
                 colors.green('[Successful Tx]'),
-                colors.magenta(`https://polygonscan.com/tx/${res.has}`)
+                colors.magenta(`https://polygonscan.com/tx/${res.hash}`)
               )
             })
             .catch((error) => {
