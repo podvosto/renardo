@@ -1,12 +1,15 @@
 import { wallet } from '../../Providers'
-import { Contracts, Trade } from '../../Config'
+import { Contracts, Trade, UnifiExchange } from '../../Config'
 import { PivotArbitrageTraderContract } from '../../Contracts'
 import colors from 'colors'
 import { ExchangeData } from '../../Types'
 import { pathFinder } from './pathFinder'
-import { Route } from './Entities'
+import { Route, RouteSwap } from './Entities'
 import { AsyncLoggerFactory } from '../../Utils/AsyncLogger'
-import { getRandom } from '../../Utils/Misc'
+import { calcDeadline, gasLimitToFactorized, normalizeSwapRoute } from '../../Utils/Trade'
+import { BN, toHex } from '../../Utils/BigNumber'
+import { ethers } from 'ethers'
+import { checkProfitability } from '../Utils'
 
 export const PivotArbitrageStrategy = async (
   exchangesData: ExchangeData[],
@@ -16,52 +19,72 @@ export const PivotArbitrageStrategy = async (
   const routes = await pathFinder(exchangesData, pairsDataFile)
   // TODO create pivot trader
   const trader = new PivotArbitrageTraderContract(Contracts.PivotArbitrageTrader, wallet)
+  const inputAmount = Trade.tradeAmount
+
   return async (block: string) => {
     // A forEach doesnt stop on Await, so it's faster
-    getRandom<Route[]>(routes, routes.length).forEach(async (route) => {
-      const logger = AsyncLoggerFactory(`\n[Block #${block}]`)
-      if (route.route[1].pair.address !== '0xcddf91a44c579765227722da371136a4f12dc81b') {
-        return
-      }
+    for (const route of routes) {
+      let tradeRoute = route
       try {
-        let tradeResult = await route.prepareTrade(Trade.tradeAmount, trader).catch((err) => {
-          debugger
-          throw err
-        })
+        console.log(colors.magenta(`[Trade]`))
+        console.log(`Route = ${tradeRoute.name}]`)
+        console.log(`Input = ${inputAmount}`)
 
-        const { profitable, outputAfterTrade, reversePaths, percentage } = tradeResult
-
-        let execution: any = false
-        if (profitable) {
-          execution = await tradeResult
-            .execute()
-            .then((res) => {
-              debugger
-              return res
-            })
-            .catch((err) => {
-              throw err
-              debugger
-            })
+        let tradeOut = await getTradeOut(tradeRoute, inputAmount)
+        let result = checkProfitability(inputAmount, tradeOut.outputAmount)
+        console.log(`Output = ${tradeOut.swapOutputAmount}`)
+        if (!result.profitable) {
+          console.log(`Profitable = false = ${result.percentage}%`)
+          continue
         }
 
-        logger.log(
-          [
-            colors.magenta(`[Trade]`),
-            `Route = ${route.name}]`,
-            `Input = ${Trade.tradeAmount}`,
-            `Output = ${outputAfterTrade}`,
-            `Profitable = ${profitable} (${percentage}%)`,
-            `Execution:`,
-            execution?.hash
-          ].join('\n')
-        )
+        if (result.reversePaths) {
+          tradeRoute = tradeRoute.reverse()
+          console.log(`RouteReversed = ${tradeRoute.name}]`)
+          tradeOut = await getTradeOut(tradeRoute, inputAmount)
+          result = checkProfitability(inputAmount, tradeOut.outputAmount)
+        }
 
-        logger.print()
+        const { profitable, percentage } = result
+        console.log(`Profitable = ${profitable} = ${result.percentage}%`)
+
+        if (profitable) {
+          const res = await trader.trade(
+            { route: tradeRoute, inputAmount, expectedOutputAmount: tradeOut.swapOutputAmount },
+            {
+              gasLimit: BN(tradeOut.gasLimit).multipliedBy(1.5).dp(0).toFixed(0)
+            }
+          )
+          console.log(`TX = https://polygonscan.com/tx/${res.hash}`)
+        }
       } catch (error) {
         debugger
-        //console.error(`[Error] ${route.name}`, error.message)
+        console.error(`[Error] ${route.name}`, error.message)
       }
-    })
+    }
   }
+}
+async function getTradeOut(route: Route, amount: string) {
+  const [firstSwap, pivotSwap, lastSwap] = route.route
+  const firstSwapOut = await amountsOut(firstSwap, amount)
+  const pivotSwapOut = await amountsOut(pivotSwap, firstSwapOut)
+  const swapOutputAmount = await amountsOut(lastSwap, pivotSwapOut)
+  //const underPricedOutputToCalcGas = BN(amount).multipliedBy(0.9).toFixed(0)
+  // const gasLimit = await trader.estimateGasForTrade(tradeParamsFactory(underPricedOutputToCalcGas))
+  const gasLimit = '563192'
+
+  const outputAmount = BN(swapOutputAmount).minus(gasLimitToFactorized(gasLimit)).toFixed()
+  return { outputAmount, swapOutputAmount, gasLimit }
+}
+async function amountsOut(routeSwap: RouteSwap, amount: string): Promise<string> {
+  const { pair, path } = routeSwap
+
+  const firstSwapAmountsOutArg = [toHex(path[0].toPrecision(amount)), normalizeSwapRoute(path)]
+  const firstSwapAmountsOut: string[] = await pair.exchange.router
+    .getAmountsOut(...firstSwapAmountsOutArg)
+    .then((res: ethers.BigNumber[]) =>
+      res.map((value, key) => path[key].toFactorized(value.toString()))
+    )
+
+  return firstSwapAmountsOut.pop()!
 }

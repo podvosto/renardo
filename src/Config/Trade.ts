@@ -2,8 +2,8 @@ import { envVar } from '../Utils/Misc'
 import { Tokens } from './Tokens'
 
 export const Trade = {
-  profitThresholdBelow: 0.999,
-  profitThresholdAbove: 1.001,
+  profitThresholdBelow: 0.995,
+  profitThresholdAbove: 1.005,
   tradeAmount: `${envVar('TRADE_AMOUNT')}`,
   slippage: '0.01',
   maxDeadline: `${60_000}`,

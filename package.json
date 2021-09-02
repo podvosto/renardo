@@ -11,8 +11,6 @@
     "start": "node build/app.js",
     "start:dev": "node -r dotenv/config -r ts-node/register --inspect src/app.ts",
     "start:dev:watch": "nodemon --watch \"src/**\" --ext \"ts,json\" --exec yarn start:dev",
-    "start:playground": "node -r dotenv/config -r ts-node/register --inspect src/playground.ts",
-    "start:playground:watch": "nodemon --watch \"src/**\" --ext \"ts,json\" --exec yarn start:playground",
     "contract:compile": "truffle compile",
     "contract:dev:server": "ganache-cli -p 8545",
     "contract:dev:deploy": "truffle migrate --network=polygon_testnet",

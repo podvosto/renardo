@@ -36,8 +36,7 @@ export const PivotArbitrageTraderABI = [
       }
     ],
     stateMutability: 'view',
-    type: 'function',
-    constant: true
+    type: 'function'
   },
   {
     inputs: [],
@@ -50,8 +49,7 @@ export const PivotArbitrageTraderABI = [
       }
     ],
     stateMutability: 'view',
-    type: 'function',
-    constant: true
+    type: 'function'
   },
   {
     inputs: [
@@ -62,6 +60,24 @@ export const PivotArbitrageTraderABI = [
       }
     ],
     name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function'
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'tokenAddress',
+        type: 'address'
+      },
+      {
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256'
+      }
+    ],
+    name: 'withdrawToken',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function'
@@ -115,24 +131,6 @@ export const PivotArbitrageTraderABI = [
       }
     ],
     name: 'trade',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function'
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: 'tokenAddress',
-        type: 'address'
-      },
-      {
-        internalType: 'uint256',
-        name: 'amount',
-        type: 'uint256'
-      }
-    ],
-    name: 'withdrawToken',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function'
