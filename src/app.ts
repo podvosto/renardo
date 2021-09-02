@@ -21,7 +21,7 @@ function getTraders(): Promise<Array<(block: string) => void>> {
   return Promise.all(
     enabledStrategies.map((strategy) => {
       return {
-        PIVOT: () => PivotArbitrageStrategy(Exchanges, './all-pairs.json'),
+        PIVOT: () => PivotArbitrageStrategy(Exchanges, './data/polygon.pairs.json'),
         DIRECT: () => DirectArbitrageStrategy(Exchanges, Pairs)
       }[strategy]()
     })
