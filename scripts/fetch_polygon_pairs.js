@@ -146,7 +146,7 @@ async function main() {
   })
 
   const json = JSON.stringify(pairsByExchange, null, 4)
-  fs.writeFileSync('./all-pairs.json', json)
+  fs.writeFileSync(`./data/polygon/pairs.json`, json)
 }
 
 main()

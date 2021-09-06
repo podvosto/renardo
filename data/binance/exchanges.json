@@ -1,0 +1,12 @@
+[
+  {
+    "name": "unifi",
+    "router": "0xBE930734eDAfc41676A76d2240f206Ed36dafbA2",
+    "factory": "0xA5Ba037Ec16c45f8ae09e013C1849554C01385f5"
+  },
+  {
+    "name": "pancake",
+    "router": "0x10ed43c718714eb63d5aa57b78b54704e256024e",
+    "factory": "0xca143ce32fe78f1f7019d7d551a6402fc5350c73"
+  }
+]

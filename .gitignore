@@ -1,4 +1,6 @@
 .env
+.env_binance
+.env_polygon
 .env.test
 .env.renardo
 build
