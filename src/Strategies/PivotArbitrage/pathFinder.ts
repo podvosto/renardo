@@ -4,50 +4,11 @@ import { UniswapRouter02 } from '../../ABI/UniswapRouter02'
 import { ethers } from 'ethers'
 import { Exchange, ExchangeData, Pair, PairData, Token } from '../../Types'
 import { UniswapPair } from '../../ABI/UniswapPair'
-import { Trade } from '../../Config'
-import fs from 'fs'
+import { Config } from '../../Config'
 import { getPairNativeToken, getPairNonNativeToken } from '../../Utils/Pair'
 import { Route, RouteSwap } from './Entities'
 
-export const pathFinder = async (
-  exchangesData: ExchangeData[],
-  pairsDataFile: string
-): Promise<Route[]> => {
-  const exchanges: Exchange[] = exchangesData.map(
-    (e) =>
-      new Exchange(
-        e.name,
-        new ethers.Contract(e.router, UniswapRouter02, wallet),
-        new ethers.Contract(e.factory, UniswapFactory, wallet)
-      )
-  )
-
-  const pairsDataRawByExchange = JSON.parse(fs.readFileSync(pairsDataFile).toString())
-
-  for (const exchange of exchanges) {
-    const pairsDataRaw = pairsDataRawByExchange[exchange.name]
-    for (const pairDataRaw of pairsDataRaw) {
-      const pairContract = new ethers.Contract(pairDataRaw.address, UniswapPair, provider)
-      const token0 = new Token(
-        pairDataRaw.token0.symbol,
-        pairDataRaw.token0.address,
-        pairDataRaw.token0.decimals
-      )
-      const token1 = new Token(
-        pairDataRaw.token1.symbol,
-        pairDataRaw.token1.address,
-        pairDataRaw.token1.decimals
-      )
-      const pair = new Pair(pairContract, token0, token1, exchange)
-
-      exchange.addPair(pair)
-    }
-  }
-
-  return pathsFinder(exchanges)
-}
-
-function pathsFinder(exchanges: Exchange[]): Route[] {
+export function pathFinder(exchanges: Exchange[]): Route[] {
   const allPairs = exchanges.reduce((pairs, ex) => [...pairs, ...ex.pairs], [] as Pair[])
 
   // A = always native
@@ -109,7 +70,7 @@ function repeated(route: RouteSwap[], pair: Pair) {
 }
 
 function hasNativeToken(pair: Pair) {
-  return pair.contains(Trade.nativeToken)
+  return pair.contains(Config.nativeToken)
 }
 
 function tokenConnectingPair(previous: [Token, Token], pair2: Pair): Token {

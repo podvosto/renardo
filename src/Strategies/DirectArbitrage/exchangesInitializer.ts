@@ -2,13 +2,13 @@ import { provider, wallet } from '../../Providers'
 import { UniswapFactory } from '../../ABI/UniswapFactory'
 import { UniswapRouter02 } from '../../ABI/UniswapRouter02'
 import { ethers } from 'ethers'
-import { Exchange, ExchangeData, Pair, PairData } from '../../Types'
+import { Exchange, ExchangeData, Pair, PairData, ExchangePairsData } from '../../Types'
 import { UniswapPair } from '../../ABI/UniswapPair'
-import { NOT_FOUND_PAIR_ADDRESS } from '../../Utils/Pair'
+import { mixAllExchangePairs, NOT_FOUND_PAIR_ADDRESS } from '../../Utils/Pair'
 
 export const exchangesInitializer = async (
   exchangesData: ExchangeData[],
-  pairsData: PairData[]
+  exchangesPairData: ExchangePairsData
 ): Promise<Exchange[]> => {
   const exchanges: Exchange[] = exchangesData.map(
     (e) =>
@@ -18,6 +18,7 @@ export const exchangesInitializer = async (
         new ethers.Contract(e.factory, UniswapFactory, wallet)
       )
   )
+  const pairsData = mixAllExchangePairs(exchangesPairData)
 
   for (const pairData of pairsData) {
     const pairsFetched = []

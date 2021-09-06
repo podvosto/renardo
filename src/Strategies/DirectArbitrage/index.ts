@@ -1,5 +1,5 @@
 import { wallet } from '../../Providers'
-import { Contracts, Trade } from '../../Config'
+import { Config } from '../../Config'
 import { DirectArbitrageTraderContract } from '../../Contracts'
 import { AsyncLoggerFactory } from '../../Utils/AsyncLogger'
 import { toHex, BN } from '../../Utils/BigNumber'
@@ -7,16 +7,16 @@ import { getPairNonNativeToken, getPairNativeToken } from '../../Utils/Pair'
 import { calcDeadline, normalizeSwapRoute } from '../../Utils/Trade'
 import { ethers } from 'ethers'
 import colors from 'colors'
-import { ExchangeData, PairData } from '../../Types'
+import { ExchangeData, ExchangePairsData } from '../../Types'
 import { exchangesInitializer } from './exchangesInitializer'
 import { checkProfitability } from '../Utils'
 
 export const DirectArbitrageStrategy = async (
   exchangesData: ExchangeData[],
-  pairsData: PairData[]
+  pairsByExchangeData: ExchangePairsData
 ) => {
-  const exchanges = await exchangesInitializer(exchangesData, pairsData)
-  const arbitrageTrader = new DirectArbitrageTraderContract(Contracts.DirectArbitrageTrader, wallet)
+  const exchanges = await exchangesInitializer(exchangesData, pairsByExchangeData)
+  const arbitrageTrader = new DirectArbitrageTraderContract(Config.DirectArbitrageTrader, wallet)
   return (block: string) => {
     // A forEach doesnt stop on Await, so it's faster
 
@@ -39,11 +39,11 @@ export const DirectArbitrageStrategy = async (
          * Calc swaps amounts out
          */
         // Swap amount out on Exchange0
-        const fromToken = getPairNativeToken(pairEx0, Trade.nativeToken)
-        const midToken = getPairNonNativeToken(pairEx0, Trade.nativeToken)
+        const fromToken = getPairNativeToken(pairEx0, Config.nativeToken)
+        const midToken = getPairNonNativeToken(pairEx0, Config.nativeToken)
         const route0 = [fromToken, midToken]
         const firstSwapAmountsOutArg = [
-          toHex(fromToken.toPrecision(Trade.tradeAmount)),
+          toHex(fromToken.toPrecision(Config.tradeAmount)),
           normalizeSwapRoute(route0)
         ]
         const firstSwapAmountsOut: string[] = await ex0.router
@@ -55,7 +55,7 @@ export const DirectArbitrageStrategy = async (
         const midTokenOut = firstSwapAmountsOut.pop()!
 
         logger.log(
-          `[${ex0.name}] 1st swap: ${Trade.tradeAmount} ${fromToken.symbol} = ${midTokenOut} ${route0[1].symbol}`
+          `[${ex0.name}] 1st swap: ${Config.tradeAmount} ${fromToken.symbol} = ${midTokenOut} ${route0[1].symbol}`
         )
 
         // Swap amount out on Exchange1
@@ -81,7 +81,7 @@ export const DirectArbitrageStrategy = async (
          * Calc swaps gas limit
          **/
 
-        const firstAmountIn = fromToken.toPrecision(Trade.tradeAmount)
+        const firstAmountIn = fromToken.toPrecision(Config.tradeAmount)
 
         const tradeArgs = {
           inputAmount: firstAmountIn,
@@ -101,7 +101,10 @@ export const DirectArbitrageStrategy = async (
 
         // Calc profitability
 
-        const { profitable, reversePaths } = checkProfitability(Trade.tradeAmount, outputAfterTrade)
+        const { profitable, reversePaths } = checkProfitability(
+          Config.tradeAmount,
+          outputAfterTrade
+        )
         if (profitable) {
           // Calc Swap direction
           const buyOn = reversePaths ? ex1 : ex0

@@ -22,11 +22,11 @@ export class PivotArbitrageTraderContract extends ContractBase {
     super(address, PivotArbitrageTraderABI, provider)
   }
 
-  private buildTradeArgs({ inputAmount, expectedOutputAmount, route }: TradeParams): any[] {
+  buildTradeArgs({ inputAmount, expectedOutputAmount, route }: TradeParams): any[] {
     const [firstSwap, pivotSwap, lastSwap] = route.route
     return [
-      inputAmount,
-      expectedOutputAmount,
+      route.route[0].path[0].toPrecision(inputAmount),
+      route.route[2].path[1].toPrecision(expectedOutputAmount),
       firstSwap.pair.exchange.router.address,
       normalizeSwapRoute(firstSwap.path),
       pivotSwap.pair.exchange.router.address,

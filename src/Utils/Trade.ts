@@ -1,4 +1,4 @@
-import { Trade } from '../Config'
+import { Config } from '../Config'
 import { Token } from '../Types'
 import { BN, toHex } from './BigNumber'
 
@@ -12,7 +12,7 @@ export const calcMinAmount = (amount: string, slippage: string, decimals?: numbe
 }
 
 export const normalizeSwapRoute = (tokens: Token[]) => tokens.map((t) => t.address)
-export const calcDeadline = (deadline: string = Trade.maxDeadline) => {
+export const calcDeadline = (deadline: string = Config.maxDeadline) => {
   return toHex(BN(Date.now()).plus(deadline).dividedBy(1000).toFixed(0))
 }
 

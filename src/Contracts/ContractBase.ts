@@ -1,4 +1,4 @@
-import { ethers } from 'ethers'
+import { ethers, ContractTransaction } from 'ethers'
 
 export interface ExecuteOptions {
   gasLimit: string
@@ -6,9 +6,7 @@ export interface ExecuteOptions {
   nonce?: string
 }
 
-export interface ExecutionResponse {
-  hash: string
-}
+export type ExecutionResponse = ContractTransaction
 export class ContractBase {
   public readonly contract: ethers.Contract
   constructor(

@@ -1,4 +1,4 @@
-export const envVar = (name: string, defaultValue?: any) => {
+export const envVar = (name: string, defaultValue?: any): string => {
   const value = process.env[name] || defaultValue
   if (!value) {
     throw new Error(`Environment variable ${name} not found`)

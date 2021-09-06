@@ -1,8 +1,7 @@
 require('dotenv').config()
-
 import { PivotArbitrageStrategy } from './Strategies/PivotArbitrage'
 import { envVar } from './Utils/Misc'
-import { Exchanges, Pairs } from './Config'
+import { Exchanges, ExchangesData, PairsByExchange } from './DataService'
 
 import { provider } from './Providers'
 import { DirectArbitrageStrategy } from './Strategies/DirectArbitrage'
@@ -17,12 +16,12 @@ async function main() {
 }
 
 function getTraders(): Promise<Array<(block: string) => void>> {
-  const enabledStrategies: Strategy[] = envVar('STRATEGIES', '').split(',')
+  const enabledStrategies: Strategy[] = envVar('STRATEGIES', '').split(',') as Strategy[]
   return Promise.all(
     enabledStrategies.map((strategy) => {
       return {
-        PIVOT: () => PivotArbitrageStrategy(Exchanges, './data/polygon.pairs.json'),
-        DIRECT: () => DirectArbitrageStrategy(Exchanges, Pairs)
+        PIVOT: () => PivotArbitrageStrategy(Exchanges),
+        DIRECT: () => DirectArbitrageStrategy(ExchangesData, PairsByExchange)
       }[strategy]()
     })
   )

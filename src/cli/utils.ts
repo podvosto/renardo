@@ -1,4 +1,4 @@
-import { Tokens } from '../Config'
+import { Tokens } from '../DataService'
 
 export const getTokenFromAddress = (tokenAddress: string) =>
-  Object.values(Tokens).find((t) => t.address.toLowerCase() === tokenAddress.toLowerCase())
+  Tokens.find((t) => t.address.toLowerCase() === tokenAddress.toLowerCase())

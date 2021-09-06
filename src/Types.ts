@@ -11,9 +11,11 @@ export interface InitializedExchange {
 }
 
 export interface PairData {
+  address: string
   token0: Token
   token1: Token
 }
+export type ExchangePairsData = Record<string, PairData[]>
 export interface ExchangeData {
   name: string
   router: string
