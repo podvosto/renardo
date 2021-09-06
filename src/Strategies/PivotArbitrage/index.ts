@@ -62,6 +62,7 @@ async function processRoute(
   console.log(`Profitable = ${profitable} = ${result.percentage}%`)
 
   if (profitable) {
+    return
     const res = await trader.trade(
       { route: tradeRoute, inputAmount, expectedOutputAmount: tradeOut.swapOutputAmount },
       {

@@ -48,6 +48,19 @@ module.exports = {
       skipDryRun: true,
       chainId: 137
     },
+    binance_mainnet: {
+      provider: () =>
+        new HDWalletProvider({
+          privateKeys: [process.env.DEPLOYER_PRIVATE_KEY],
+          providerOrUrl: process.env.PROVIDER_JSON_RPC_URL,
+          chainId: 56
+        }),
+      network_id: 56,
+      confirmations: 1,
+      timeoutBlocks: 200,
+      skipDryRun: true,
+      chainId: 56
+    },
     polygon_testnet: {
       provider: () =>
         new HDWalletProvider({

@@ -13,8 +13,10 @@
     "start:dev:watch": "nodemon --watch \"src/**\" --ext \"ts,json\" --exec yarn start:dev",
     "contract:compile": "truffle compile",
     "contract:dev:server": "ganache-cli -p 8545",
-    "contract:dev:deploy": "truffle migrate --network=polygon_testnet",
-    "contract:deploy": "truffle migrate --network=polygon_mainnet",
+    "contract:polygon:dev:deploy": "truffle migrate --network=polygon_testnet",
+    "contract:polygon:deploy": "truffle migrate --network=polygon_mainnet",
+    "contract:binance:dev:deploy": "truffle migrate --network=binance_testnet",
+    "contract:binance:deploy": "truffle migrate --network=binance_mainnet",
     "update-abis": "node scripts/update_abis.js",
     "deploy:renardo": "pm2 deploy pm2.json mainnet",
     "deploy:env": "scp .env.* deployer@renardo-server:/home/deployer"
