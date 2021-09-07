@@ -21,3 +21,9 @@ export const gasLimitToFactorized = (gasLimit: string) =>
 
 export const gasLimitToPrecision = (gasLimit: string) =>
   BN(gasLimit).multipliedBy(Math.pow(10, 9)).toFixed()
+
+export const txLink = (hash: string) =>
+  ({
+    polygon: `https://polygonscan.com/tx/${hash}`,
+    binance: `https://bscscan.com/tx/${hash}`
+  }[Config.blockchain]!)

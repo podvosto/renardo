@@ -10,7 +10,7 @@ import { Strategy } from './Types'
 async function main() {
   const traders = await getTraders()
 
-  provider.once('block', async (block) => {
+  provider.on('block', async (block) => {
     traders.forEach((trader) => trader(block))
   })
 }

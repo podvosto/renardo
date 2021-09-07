@@ -5,7 +5,7 @@ import colors from 'colors'
 import { Exchange } from '../../Types'
 import { pathFinder } from './pathFinder'
 import { Route, RouteSwap } from './Entities'
-import { gasLimitToFactorized, normalizeSwapRoute } from '../../Utils/Trade'
+import { gasLimitToFactorized, normalizeSwapRoute, txLink } from '../../Utils/Trade'
 import { BN, toHex } from '../../Utils/BigNumber'
 import { ethers } from 'ethers'
 import { checkProfitability } from '../Utils'
@@ -44,41 +44,30 @@ async function processRoute(
   console.log(`Input = ${inputAmount}`)
 
   let tradeOut = await getTradeOut(tradeRoute, inputAmount, trader)
-  let result = checkProfitability(inputAmount, tradeOut.outputAmount)
+  let { profitable, percentage } = checkProfitability(inputAmount, tradeOut.outputAmount)
   console.log(`Output = ${tradeOut.swapOutputAmount}`)
-  if (!result.profitable) {
-    console.log(`Profitable = false = ${result.percentage}%`)
+  console.log(`Profitable = ${profitable} = ${percentage}%`)
+
+  if (!profitable) {
     return false
   }
 
-  if (result.reversePaths) {
-    tradeRoute = tradeRoute.reverse()
-    console.log(`RouteReversed = ${tradeRoute.name}]`)
-    tradeOut = await getTradeOut(tradeRoute, inputAmount, trader)
-    result = checkProfitability(inputAmount, tradeOut.outputAmount)
-  }
+  const res = await trader.trade(
+    { route: tradeRoute, inputAmount, expectedOutputAmount: tradeOut.swapOutputAmount },
+    {
+      gasLimit: BN(tradeOut.gasLimit).multipliedBy(1.5).dp(0).toFixed(0)
+    }
+  )
+  console.log(`TX = ${txLink(res.hash)}`)
 
-  const { profitable, percentage } = result
-  console.log(`Profitable = ${profitable} = ${result.percentage}%`)
-
-  if (profitable) {
-    return
-    const res = await trader.trade(
-      { route: tradeRoute, inputAmount, expectedOutputAmount: tradeOut.swapOutputAmount },
-      {
-        gasLimit: BN(tradeOut.gasLimit).multipliedBy(1.5).dp(0).toFixed(0)
-      }
-    )
-    res
-      .wait(1)
-      .then((res) => {
-        debugger
-      })
-      .catch((error) => {
-        debugger
-      })
-    console.log(`TX = https://polygonscan.com/tx/${res.hash}`)
-  }
+  res
+    .wait(1)
+    .then((res) => {
+      debugger
+    })
+    .catch((error) => {
+      debugger
+    })
 }
 async function getTradeOut(
   route: Route,
@@ -89,10 +78,10 @@ async function getTradeOut(
   const firstSwapOut = await amountsOut(firstSwap, inputAmount)
   const pivotSwapOut = await amountsOut(pivotSwap, firstSwapOut)
   const swapOutputAmount = await amountsOut(lastSwap, pivotSwapOut)
-  const underPricedOutputToCalcGas = BN(inputAmount).multipliedBy(0.9).toFixed()
+
   const gasLimit = await trader
     .estimateGasForTrade({
-      expectedOutputAmount: underPricedOutputToCalcGas,
+      expectedOutputAmount: '0',
       inputAmount,
       route
     })
@@ -100,7 +89,7 @@ async function getTradeOut(
       const transferFromFailed =
         error?.error?.error?.message === 'execution reverted: TransferHelper: TRANSFER_FROM_FAILED'
       if (transferFromFailed) {
-        // as first pair and last one have wmatic token
+        // as first pair and last one have wrapped native token
         // the failing token must be on the pivot pair, therefore ban that pair
         const pivotPair = route.route[1].pair
         blackList(pivotPair.address, pivotPair.name)

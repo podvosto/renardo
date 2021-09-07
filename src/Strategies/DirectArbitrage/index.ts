@@ -4,7 +4,7 @@ import { DirectArbitrageTraderContract } from '../../Contracts'
 import { AsyncLoggerFactory } from '../../Utils/AsyncLogger'
 import { toHex, BN } from '../../Utils/BigNumber'
 import { getPairNonNativeToken, getPairNativeToken } from '../../Utils/Pair'
-import { calcDeadline, normalizeSwapRoute } from '../../Utils/Trade'
+import { calcDeadline, normalizeSwapRoute, txLink } from '../../Utils/Trade'
 import { ethers } from 'ethers'
 import colors from 'colors'
 import { ExchangeData, ExchangePairsData } from '../../Types'
@@ -127,10 +127,7 @@ export const DirectArbitrageStrategy = async (
           await arbitrageTrader
             .trade(tradeFinalArgs, { gasLimit: estimatedGas })
             .then((res) => {
-              logger.log(
-                colors.green('[Successful Tx]'),
-                colors.magenta(`https://polygonscan.com/tx/${res.hash}`)
-              )
+              logger.log(colors.green('[Successful Tx]'), colors.magenta(txLink(res.hash)))
             })
             .catch((error) => {
               logger.log(colors.red(`[Failed Tx]`), error)

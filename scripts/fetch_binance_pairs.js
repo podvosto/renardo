@@ -37,7 +37,7 @@ async function fetchPCSPairs() {
       body: JSON.stringify({
         query: `
       query pools {
-        pairs: pairs(orderBy: trackedReserveBNB, orderDirection: desc) {
+        pairs: pairs(first: 1000, orderBy: trackedReserveBNB, orderDirection: desc) {
           id
           token0 {
             id
