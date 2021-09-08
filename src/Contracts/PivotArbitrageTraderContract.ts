@@ -2,22 +2,11 @@ import { PivotArbitrageTraderABI } from '../ABI/PivotArbitrageTrader'
 
 import { ethers } from 'ethers'
 import { ContractBase, ExecuteOptions, ExecutionResponse } from './ContractBase'
-import { Route } from '../Strategies/PivotArbitrage/Entities'
 import { normalizeSwapRoute } from '../Utils/Trade'
 import { calcDeadline } from '../Utils/Trade'
+import { ITraderContract, TradeParams, WithdrawParams } from './ITraderContract'
 
-interface TradeParams {
-  inputAmount: string
-  expectedOutputAmount: string
-  route: Route
-}
-
-interface WithdrawParams {
-  tokenAddress: string
-  amount: string
-}
-
-export class PivotArbitrageTraderContract extends ContractBase {
+export class PivotArbitrageTraderContract extends ContractBase implements ITraderContract {
   constructor(address: string, provider: ethers.Signer | ethers.providers.Provider) {
     super(address, PivotArbitrageTraderABI, provider)
   }

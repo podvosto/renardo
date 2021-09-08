@@ -38,19 +38,32 @@ export class Pair {
   get exists() {
     return parseInt(this.contract.address, 16) !== 0
   }
+  get hash() {
+    return [this.token0.address.toLowerCase(), this.token1.address.toLowerCase()]
+      .sort((a, b) => (a < b ? 1 : -1))
+      .join('_')
+  }
   contains(find: Token) {
     return this.token0.equals(find) || this.token1.equals(find)
   }
 }
 
 export class Exchange {
-  public readonly pairs: Pair[] = []
   public constructor(
     public readonly name: string,
     public readonly router: ethers.Contract,
-    public readonly factory: ethers.Contract
+    public readonly factory: ethers.Contract,
+    public pairs: Pair[] = []
   ) {}
 
+  copy() {
+    const copiedEx = new Exchange(this.name, this.router, this.factory, [])
+    copiedEx.pairs = this.pairs.map(
+      (pair) => new Pair(pair.contract, pair.token0, pair.token1, copiedEx)
+    )
+
+    return copiedEx
+  }
   addPair(pair: Pair) {
     this.pairs.push(pair)
   }

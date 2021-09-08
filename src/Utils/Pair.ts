@@ -1,5 +1,5 @@
 import { Config } from '../Config'
-import { ExchangePairsData, Pair, PairData, Token } from '../Types'
+import { Exchange, ExchangePairsData, Pair, PairData, Token } from '../Types'
 
 export const getPairNativeToken = (pair: Pair, nativeToken: Token = Config.nativeToken) => {
   if (nativeToken.equals(pair.token0)) return pair.token0
@@ -15,6 +15,6 @@ export const getPairNonNativeToken = (pair: Pair, nativeToken: Token = Config.na
 
 export const NOT_FOUND_PAIR_ADDRESS = '0x0'
 
-export const mixAllExchangePairs = (pairsByExchangeData: ExchangePairsData): PairData[] => {
-  return Object.values(pairsByExchangeData).reduce((list, pairs) => [...list, ...pairs], [])
+export const mixAllExchangePairs = (exchanges: Exchange[]): Pair[] => {
+  return exchanges.reduce((list, ex) => [...list, ...ex.pairs], [] as Pair[])
 }

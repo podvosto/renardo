@@ -3,20 +3,14 @@ import { Config } from '../../Config'
 import { PivotArbitrageTraderContract } from '../../Contracts'
 import colors from 'colors'
 import { Exchange } from '../../Types'
-import { pathFinder } from './pathFinder'
-import { Route, RouteSwap } from './Entities'
-import { gasLimitToFactorized, normalizeSwapRoute, txLink } from '../../Utils/Trade'
-import { BN, toHex } from '../../Utils/BigNumber'
-import { ethers } from 'ethers'
+import { pivotPathFinder } from './pathFinder'
+import { Route } from '../../Route'
+import { getTradeOut, txLink } from '../../Utils/Trade'
+import { BN } from '../../Utils/BigNumber'
 import { checkProfitability } from '../Utils'
-import { blackList, isBlackListed } from '../../DataService'
 
 export const PivotArbitrageStrategy = async (exchanges: Exchange[]) => {
-  const routesUnfiltered = await pathFinder(exchanges)
-  const routes = routesUnfiltered.filter((r) => {
-    const hasBlackListed = r.route.find((p) => isBlackListed(p.pair.address))
-    return !hasBlackListed
-  })
+  const routes = await pivotPathFinder(exchanges)
 
   const trader = new PivotArbitrageTraderContract(Config.PivotArbitrageTrader, wallet)
   const inputAmount = Config.tradeAmount
@@ -29,7 +23,7 @@ export const PivotArbitrageStrategy = async (exchanges: Exchange[]) => {
         await processRoute(route.reverse(), trader, inputAmount)
       } catch (error) {
         debugger
-        console.error(`[Error] ${route.name}`, error.message)
+        console.error(`[Error] ${route.name}`, error)
       }
     }
   }
@@ -68,52 +62,4 @@ async function processRoute(
     .catch((error) => {
       debugger
     })
-}
-async function getTradeOut(
-  route: Route,
-  inputAmount: string,
-  trader: PivotArbitrageTraderContract
-) {
-  const [firstSwap, pivotSwap, lastSwap] = route.route
-  const firstSwapOut = await amountsOut(firstSwap, inputAmount)
-  const pivotSwapOut = await amountsOut(pivotSwap, firstSwapOut)
-  const swapOutputAmount = await amountsOut(lastSwap, pivotSwapOut)
-
-  const gasLimit = await trader
-    .estimateGasForTrade({
-      expectedOutputAmount: '0',
-      inputAmount,
-      route
-    })
-    .catch((error) => {
-      const transferFromFailed =
-        error?.error?.error?.message === 'execution reverted: TransferHelper: TRANSFER_FROM_FAILED'
-      if (transferFromFailed) {
-        // as first pair and last one have wrapped native token
-        // the failing token must be on the pivot pair, therefore ban that pair
-        const pivotPair = route.route[1].pair
-        blackList(pivotPair.address, pivotPair.name)
-      }
-
-      throw error
-    })
-
-  const outputAmount = BN(swapOutputAmount).minus(gasLimitToFactorized(gasLimit)).toFixed()
-  return { outputAmount, swapOutputAmount, gasLimit }
-}
-async function amountsOut(routeSwap: RouteSwap, amount: string): Promise<string> {
-  const { pair, path } = routeSwap
-
-  const firstSwapAmountsOutArg = [toHex(path[0].toPrecision(amount)), normalizeSwapRoute(path)]
-  const firstSwapAmountsOut: string[] = await pair.exchange.router
-    .getAmountsOut(...firstSwapAmountsOutArg)
-    .then((res: ethers.BigNumber[]) =>
-      res.map((value, key) => path[key].toFactorized(value.toString()))
-    )
-    .catch((err: any) => {
-      debugger
-      throw err
-    })
-
-  return firstSwapAmountsOut.pop()!
 }

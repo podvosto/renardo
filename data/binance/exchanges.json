@@ -8,5 +8,10 @@
     "name": "pancake",
     "router": "0x10ed43c718714eb63d5aa57b78b54704e256024e",
     "factory": "0xca143ce32fe78f1f7019d7d551a6402fc5350c73"
+  },
+  {
+    "name": "wault",
+    "router": "0xd48745e39bbed146eec15b79cbf964884f9877c2",
+    "factory": "0xb42e3fe71b7e0673335b3331b3e1053bd9822570}"
   }
 ]

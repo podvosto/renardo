@@ -10,21 +10,22 @@ import { Strategy } from './Types'
 async function main() {
   const traders = await getTraders()
 
-  provider.on('block', async (block) => {
+  provider.once('block', async (block) => {
     traders.forEach((trader) => trader(block))
   })
 }
 
 function getTraders(): Promise<Array<(block: string) => void>> {
   const enabledStrategies: Strategy[] = envVar('STRATEGIES', '').split(',') as Strategy[]
-  return Promise.all(
-    enabledStrategies.map((strategy) => {
-      return {
-        PIVOT: () => PivotArbitrageStrategy(Exchanges),
-        DIRECT: () => DirectArbitrageStrategy(ExchangesData, PairsByExchange)
-      }[strategy]()
-    })
+
+  const traderPromises = enabledStrategies.map((strategy) =>
+    ({
+      PIVOT: () => PivotArbitrageStrategy(Exchanges),
+      DIRECT: () => DirectArbitrageStrategy(Exchanges)
+    }[strategy]())
   )
+
+  return Promise.all(traderPromises)
 }
 
 main()

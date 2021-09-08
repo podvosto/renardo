@@ -1,14 +1,10 @@
-import { provider, wallet } from '../../Providers'
-import { UniswapFactory } from '../../ABI/UniswapFactory'
-import { UniswapRouter02 } from '../../ABI/UniswapRouter02'
-import { ethers } from 'ethers'
-import { Exchange, ExchangeData, Pair, PairData, Token } from '../../Types'
-import { UniswapPair } from '../../ABI/UniswapPair'
+import { Exchange, Pair, Token } from '../../Types'
 import { Config } from '../../Config'
 import { getPairNativeToken, getPairNonNativeToken } from '../../Utils/Pair'
-import { Route, RouteSwap } from './Entities'
+import { Route, RouteSwap } from '../../Route'
+import { isBlackListed } from '../../DataService'
 
-export function pathFinder(exchanges: Exchange[]): Route[] {
+export function pivotPathFinder(exchanges: Exchange[]): Route[] {
   const allPairs = exchanges.reduce((pairs, ex) => [...pairs, ...ex.pairs], [] as Pair[])
 
   // A = always native
@@ -55,7 +51,10 @@ export function pathFinder(exchanges: Exchange[]): Route[] {
     }
   }
 
-  return routes
+  return routes.filter((r) => {
+    const hasBlackListed = r.route.find((p) => isBlackListed(p.pair.address))
+    return !hasBlackListed
+  })
 }
 
 function connected(route: RouteSwap[], pairY: Pair) {
