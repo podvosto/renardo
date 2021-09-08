@@ -8,6 +8,9 @@ import { DirectArbitrageStrategy } from './Strategies/DirectArbitrage'
 import { Strategy } from './Types'
 
 async function main() {
+  // todo: all traders contract interface (typescript) accepts a Route(RouteSwap[]) as arg.
+  // so currently its repeated the logic of consulting amounts out and executing the trade, it could be unified
+  // as the only logic that vary from each strategy is the routes calculation in the pathFinder.ts file of each strat
   const traders = await getTraders()
 
   provider.once('block', async (block) => {
